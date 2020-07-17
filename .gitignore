@@ -1,0 +1,5 @@
+.idea
+*.iml
+/parse.log
+last.html
+*.db
