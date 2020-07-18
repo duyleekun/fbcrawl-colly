@@ -1,44 +1,41 @@
-package main
+package fbcolly
 
-/*
-typedef struct FacebookGroup {
-    char *name;
-} FacebookGroup;
-*/
 import "C"
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/extensions"
 	"github.com/google/logger"
-	"os"
 	"strings"
 )
 
-type CFacebookGroup struct {
-	FacebookGroup C.FacebookGroup
+type fbcolly struct {
+	authCollector   *colly.Collector
+	groupCollector  *colly.Collector
+	detailCollector *colly.Collector
+	email           string
+	password        string
+	otp             string
 }
 
-type FacebookGroup struct {
-
-}
-
-type FacebookPost struct {
-
-}
-
-type FacebookComment struct {
-
-}
-
-type FacebookAuthor struct {
-
-}
+//type FacebookGroup struct {
+//
+//}
+//
+//type FacebookPost struct {
+//
+//}
+//
+//type FacebookComment struct {
+//
+//}
+//
+//type FacebookAuthor struct {
+//
+//}
 
 func sharedOnRequest(request *colly.Request) {
 	logger.Info("OnRequest")
@@ -57,8 +54,8 @@ func sharedOnRequest(request *colly.Request) {
 	request.Headers.Set("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; Moto G (4)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Mobile Safari/537.36")
 	request.ResponseCharacterEncoding = "utf-8"
 }
-func setupGroupCollector() error {
-	err, collector := setupSharedCollector(groupCollector)
+func (f fbcolly) setupGroupCollector() error {
+	err, collector := setupSharedCollector(f.groupCollector)
 	currentPage := 1
 
 	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
@@ -72,14 +69,14 @@ func setupGroupCollector() error {
 	collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
 		url := "http://mbasic.facebook.com" + element.Attr("href")
 		logger.Info("Post url found ", url)
-		detailCollector.Visit(url)
+		f.detailCollector.Visit(url)
 	})
 
 	return err
 }
 
-func setupGroupPostCollector() error {
-	err, collector := setupSharedCollector(detailCollector)
+func (f fbcolly) setupGroupPostCollector() error {
+	err, collector := setupSharedCollector(f.detailCollector)
 
 	collector.OnHTML("#m_story_permalink_view", func(element *colly.HTMLElement) {
 		dataElement := element.DOM.Find("div[data-ft]")
@@ -92,7 +89,7 @@ func setupGroupPostCollector() error {
 				//Content
 				logger.Info(strings.Join(dataElement.Find("p").Map(func(i int, selection *goquery.Selection) string {
 					return selection.Text()
-				}),"\n"))
+				}), "\n"))
 
 			}
 
@@ -109,8 +106,8 @@ func setupGroupPostCollector() error {
 	return err
 }
 
-func setupAuthCollector() error {
-	err, collector := setupSharedCollector(authCollector)
+func (f fbcolly) setupAuthCollector() error {
+	err, collector := setupSharedCollector(f.authCollector)
 
 	collector.OnHTML("#login_form", func(element *colly.HTMLElement) {
 		logger.Info("OnHTML login_form")
@@ -119,8 +116,8 @@ func setupAuthCollector() error {
 			logger.Error(err)
 			return
 		}
-		reqMap["email"] = *email
-		reqMap["pass"] = *password
+		reqMap["email"] = f.email
+		reqMap["pass"] = f.password
 		logger.Info("req map:", reqMap)
 		err = collector.Post(loginURL, reqMap)
 		if err != nil {
@@ -142,10 +139,10 @@ func setupAuthCollector() error {
 			reqMap["name_action_selected"] = "dont_save"
 		} else if element.DOM.Find("input[name=\"approvals_code\"]").Length() > 0 {
 			logger.Info("OnHTML OTP checkpoint")
-			logger.Info("Please input OTP")
-			reader := bufio.NewReader(os.Stdin)
-			code, _ := reader.ReadString('\n')
-			code = code[0:6]
+			//logger.Info("Please input OTP")
+			//reader := bufio.NewReader(os.Stdin)
+			//code, _ := reader.ReadString('\n')
+			code := f.otp[0:6]
 			reqMap["approvals_code"] = code
 		} else {
 			logger.Info("OnHTML Only Continue checkpoint")
@@ -203,50 +200,29 @@ func getForm(element *colly.HTMLElement, err error) (string, error, map[string]s
 	return submitUrl, err, reqMap
 }
 
-const logPath = "parse.log"
-
-var verbose = flag.Bool("verbose", true, "print info level logs to stdout")
-var email = flag.String("email", "change_me@gmail.com", "facebook email")
-var password = flag.String("password", "change_me", "facebook password")
-var groupId = flag.String("groupId", "334294967318328", "facebook group id, default is 334294967318328")
-var authCollector *colly.Collector
-var groupCollector *colly.Collector
-var detailCollector *colly.Collector
-
-func main() {
-	group := CFacebookGroup{FacebookGroup: C.FacebookGroup{name: C.CString("LOL")}}
-	fmt.Printf("%+v", group)
-	return
-
-	flag.Parse()
-
-	lf, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0660)
-	if err != nil {
-		logger.Fatalf("Failed to open log file: %v", err)
-	}
-	defer lf.Close()
-	defer logger.Init("fb-colly", *verbose, false, lf).Close()
+func New(email string, password string, otp string) fbcolly {
+	f := fbcolly{email: email, password: password, otp: otp}
 
 	collector := colly.NewCollector()
 	collector.SetProxy("socks5://localhost:8889")
 
+	f.authCollector = collector.Clone()
+	f.groupCollector = collector.Clone()
+	f.detailCollector = collector.Clone()
+	f.setupAuthCollector()
+	f.setupGroupCollector()
+	f.setupGroupPostCollector()
 
-	authCollector = collector.Clone()
-	groupCollector = collector.Clone()
-	detailCollector = collector.Clone()
-	setupAuthCollector()
-	setupGroupCollector()
-	setupGroupPostCollector()
-
-
-	err = authCollector.Visit("https://mbasic.facebook.com/")
+	err := f.authCollector.Visit("https://mbasic.facebook.com/")
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
+	return f
+}
 
-	err = groupCollector.Visit("https://mbasic.facebook.com/groups/" + *groupId)
+func (f fbcolly) FetchGroup(groupId string) {
+	err := f.groupCollector.Visit("https://mbasic.facebook.com/groups/" + *groupId)
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
-
 }
