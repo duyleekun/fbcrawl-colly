@@ -3,3 +3,5 @@
 /parse.log
 last.html
 *.db
+/fbcolly.so
+/fbcolly.h

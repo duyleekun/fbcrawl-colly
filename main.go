@@ -1,5 +1,15 @@
 package main
 
+/*
+#include <stdio.h>
+#include <stdlib.h>
+
+static void myprint(char* s) {
+  printf("%s\n", s);
+}
+
+
+*/
 import "C"
 
 import (
@@ -20,13 +30,16 @@ var groupId = flag.String("groupId", "334294967318328", "facebook group id, defa
 func main() {
 	flag.Parse()
 
+	//post := fbcrawl.FacebookPost{}
+	//bPost, err := proto.Marshal(&post)
+
 	lf, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0660)
 	if err != nil {
 		logger.Fatalf("Failed to open log file: %v", err)
 	}
 	defer lf.Close()
 	defer logger.Init("fb-colly", *verbose, false, lf).Close()
-
-	f := fbcolly.New(*email, *password, *otp)
-	f.FetchGroup(*groupId)
+	f := fbcolly.New()
+	f.Login(*email, *password, *otp)
+	f.FetchGroupFeed(*groupId)
 }

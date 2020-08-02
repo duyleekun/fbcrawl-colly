@@ -9,16 +9,19 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/extensions"
 	"github.com/google/logger"
+	"qnetwork.net/fbcrawl/fbcrawl"
 	"strings"
+	"unsafe"
 )
 
 type fbcolly struct {
-	authCollector   *colly.Collector
-	groupCollector  *colly.Collector
-	detailCollector *colly.Collector
-	email           string
-	password        string
-	otp             string
+	//authCollector   *colly.Collector
+	//groupCollector  *colly.Collector
+	//detailCollector *colly.Collector
+	collector *colly.Collector
+	email     string
+	password  string
+	otp       string
 }
 
 //type FacebookGroup struct {
@@ -54,28 +57,8 @@ func sharedOnRequest(request *colly.Request) {
 	request.Headers.Set("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; Moto G (4)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Mobile Safari/537.36")
 	request.ResponseCharacterEncoding = "utf-8"
 }
-func (f fbcolly) setupGroupCollector() error {
-	err, collector := setupSharedCollector(f.groupCollector)
-	currentPage := 1
 
-	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
-		currentPage++
-		if currentPage < 3 {
-			logger.Info("Will fetch page", currentPage)
-			collector.Visit("http://mbasic.facebook.com" + element.Attr("href"))
-		}
-	})
-
-	collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
-		url := "http://mbasic.facebook.com" + element.Attr("href")
-		logger.Info("Post url found ", url)
-		f.detailCollector.Visit(url)
-	})
-
-	return err
-}
-
-func (f fbcolly) setupGroupPostCollector() error {
+func (f *fbcolly) setupGroupPostCollector() error {
 	err, collector := setupSharedCollector(f.detailCollector)
 
 	collector.OnHTML("#m_story_permalink_view", func(element *colly.HTMLElement) {
@@ -106,7 +89,7 @@ func (f fbcolly) setupGroupPostCollector() error {
 	return err
 }
 
-func (f fbcolly) setupAuthCollector() error {
+func (f *fbcolly) setupAuthCollector() error {
 	err, collector := setupSharedCollector(f.authCollector)
 
 	collector.OnHTML("#login_form", func(element *colly.HTMLElement) {
@@ -200,11 +183,11 @@ func getForm(element *colly.HTMLElement, err error) (string, error, map[string]s
 	return submitUrl, err, reqMap
 }
 
-func New(email string, password string, otp string) fbcolly {
-	f := fbcolly{email: email, password: password, otp: otp}
+func New() *fbcolly {
+	f := fbcolly{}
 
 	collector := colly.NewCollector()
-	collector.SetProxy("socks5://localhost:8889")
+	//collector.SetProxy("socks5://localhost:8889")
 
 	f.authCollector = collector.Clone()
 	f.groupCollector = collector.Clone()
@@ -213,16 +196,48 @@ func New(email string, password string, otp string) fbcolly {
 	f.setupGroupCollector()
 	f.setupGroupPostCollector()
 
+	return &f
+}
+
+func (f *fbcolly) Login(email string, password string, otp string) {
+	logger.Info("Login using email", email)
+
+	f.email = email
+	f.password = password
+	f.otp = otp
+
 	err := f.authCollector.Visit("https://mbasic.facebook.com/")
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
-	return f
 }
 
-func (f fbcolly) FetchGroup(groupId string) {
-	err := f.groupCollector.Visit("https://mbasic.facebook.com/groups/" + *groupId)
+func (f *fbcolly) FetchGroupFeed(groupId string) fbcrawl.FacebookGroup {
+	groupCollector := f.collector.Clone()
+	err, collector := setupSharedCollector(groupCollector)
+	currentPage := 1
+
+	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
+		currentPage++
+		if currentPage < 3 {
+			logger.Info("Will fetch page", currentPage)
+			collector.Visit("http://mbasic.facebook.com" + element.Attr("href"))
+		}
+	})
+
+	collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
+		url := "http://mbasic.facebook.com" + element.Attr("href")
+		logger.Info("Post url found ", url)
+		f.detailCollector.Visit(url)
+	})
+
+	err := f.groupCollector.Visit("https://mbasic.facebook.com/groups/" + groupId)
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
+	return fbcrawl.FacebookGroup{Name: "TODO:", Id: "TODO:"}
+}
+
+func ToFbcolly(pointer unsafe.Pointer) *fbcolly {
+	return (*fbcolly)(pointer)
 }
