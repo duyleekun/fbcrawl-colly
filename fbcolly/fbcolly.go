@@ -8,17 +8,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/extensions"
+	"github.com/gocolly/colly/storage"
 	"github.com/google/logger"
 	"qnetwork.net/fbcrawl/fbcrawl"
 	"strings"
-	"unsafe"
 )
 
-type fbcolly struct {
+type Fbcolly struct {
 	collector *colly.Collector
-	email     string
-	password  string
-	otp       string
 }
 
 func sharedOnRequest(request *colly.Request) {
@@ -39,7 +36,7 @@ func sharedOnRequest(request *colly.Request) {
 	request.ResponseCharacterEncoding = "utf-8"
 }
 
-func (f *fbcolly) setupGroupPostCollector(collector *colly.Collector) error {
+func (f *Fbcolly) setupGroupPostCollector(collector *colly.Collector) error {
 	err := setupSharedCollector(collector)
 
 	collector.OnHTML("#m_story_permalink_view", func(element *colly.HTMLElement) {
@@ -70,7 +67,7 @@ func (f *fbcolly) setupGroupPostCollector(collector *colly.Collector) error {
 	return err
 }
 
-func setupSharedCollector(collector *colly.Collector) (error) {
+func setupSharedCollector(collector *colly.Collector) error {
 	var err error
 	extensions.Referer(collector)
 
@@ -108,38 +105,19 @@ func getForm(element *colly.HTMLElement, err error) (string, error, map[string]s
 	return submitUrl, err, reqMap
 }
 
-func New() *fbcolly {
-	f := fbcolly{}
-
+func New() *Fbcolly {
+	f := Fbcolly{}
 	f.collector = colly.NewCollector()
-
-	//collector.SetProxy("socks5://localhost:8889")
-
-	//f.authCollector = collector.Clone()
-	//f.groupCollector = collector.Clone()
-	//f.detailCollector = collector.Clone()
-	//f.setupAuthCollector()
-	//f.setupGroupCollector()
-	//f.setupGroupPostCollector()
-
 	return &f
 }
 
-func (f *fbcolly) Login(email string, password string, otp string) error {
+func (f *Fbcolly) Login(email string, password string, otp string) error {
 	collector := f.collector.Clone()
 	setupSharedCollector(collector)
 
 	logger.Info("Login using email", email)
 
-	f.email = email
-	f.password = password
-	f.otp = otp
-
-	err := f.collector.Visit("https://mbasic.facebook.com/")
-	if err != nil {
-		logger.Error("crawl by colly err:", err)
-	}
-
+	var err error
 	collector.OnHTML("#login_form", func(element *colly.HTMLElement) {
 		logger.Info("OnHTML login_form")
 		loginURL, err, reqMap := getForm(element, err)
@@ -147,13 +125,17 @@ func (f *fbcolly) Login(email string, password string, otp string) error {
 			logger.Error(err)
 			return
 		}
-		reqMap["email"] = f.email
-		reqMap["pass"] = f.password
+		reqMap["email"] = email
+		reqMap["pass"] = password
 		logger.Info("req map:", reqMap)
 		err = collector.Post(loginURL, reqMap)
 		if err != nil {
 			logger.Error("post err:", err)
 		}
+	})
+
+	collector.OnHTML("a[href=\"/login/save-device/cancel/?flow=interstitial_nux&nux_source=regular_login\"]", func(element *colly.HTMLElement) {
+		collector.Visit("http://mbasic.facebook.com" + element.Attr("href"))
 	})
 
 	collector.OnHTML("form[action=\"/login/checkpoint/\"]", func(element *colly.HTMLElement) {
@@ -173,7 +155,7 @@ func (f *fbcolly) Login(email string, password string, otp string) error {
 			//logger.Info("Please input OTP")
 			//reader := bufio.NewReader(os.Stdin)
 			//code, _ := reader.ReadString('\n')
-			code := f.otp[0:6]
+			code := otp[0:6]
 			reqMap["approvals_code"] = code
 		} else {
 			logger.Info("OnHTML Only Continue checkpoint")
@@ -190,10 +172,17 @@ func (f *fbcolly) Login(email string, password string, otp string) error {
 		logger.Info("I'm IN HOME, navigate to page now")
 	})
 
-	return err, collector.cook collector.Cookies("https://mbasic.facebook.com/")
+	err = collector.Visit("https://mbasic.facebook.com/")
+	if err != nil {
+		logger.Error("crawl by colly err:", err)
+	}
+	logger.Info(storage.StringifyCookies(collector.Cookies("https://mbasic.facebook.com/")))
+	//return err, storage.StringifyCookies(collector.Cookies("https://mbasic.facebook.com/"))
+	//return err, collector.getS.Cookies("https://mbasic.facebook.com/")
+	return err
 }
 
-func (f *fbcolly) FetchGroupFeed(groupId string) fbcrawl.FacebookGroup {
+func (f *Fbcolly) FetchGroupFeed(groupId string) fbcrawl.FacebookGroup {
 	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
 	currentPage := 1
@@ -207,19 +196,15 @@ func (f *fbcolly) FetchGroupFeed(groupId string) fbcrawl.FacebookGroup {
 	})
 
 	//TODO: May not need this
-	//collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
-	//	url := "http://mbasic.facebook.com" + element.Attr("href")
-	//	logger.Info("Post url found ", url)
-	//	f.detailCollector.Visit(url)
-	//})
+	collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
+		url := "http://mbasic.facebook.com" + element.Attr("href")
+		logger.Info("Post url found ", url)
+		//f.detailCollector.Visit(url)
+	})
 
 	err = collector.Visit("https://mbasic.facebook.com/groups/" + groupId)
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
 	return fbcrawl.FacebookGroup{Name: "TODO:", Id: "TODO:"}
-}
-
-func ToFbcolly(pointer unsafe.Pointer) *fbcolly {
-	return (*fbcolly)(pointer)
 }

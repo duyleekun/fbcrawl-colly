@@ -17,6 +17,7 @@ import (
 	"github.com/google/logger"
 	"os"
 	"qnetwork.net/fbcrawl/fbcolly"
+	"unsafe"
 )
 
 const logPath = "parse.log"
@@ -26,6 +27,26 @@ var email = flag.String("email", "change_me@gmail.com", "facebook email")
 var password = flag.String("password", "change_me", "facebook password")
 var otp = flag.String("otp", "123456", "facebook otp")
 var groupId = flag.String("groupId", "334294967318328", "facebook group id, default is 334294967318328")
+
+var tmp = fbcolly.New()
+
+//export Init
+func Init() uintptr {
+	return (uintptr)(unsafe.Pointer(tmp))
+}
+
+//export Login
+func Login(pointer unsafe.Pointer, email *C.char, password *C.char) {
+	p := (*fbcolly.Fbcolly)(pointer)
+	//print(p.E)
+	p.Login(C.GoString(email), C.GoString(password), "")
+}
+
+//export FetchGroupFeed
+func FetchGroupFeed(pointer unsafe.Pointer, groupId *C.char, password *C.char) {
+	p := (*fbcolly.Fbcolly)(pointer)
+	p.FetchGroupFeed(C.GoString(groupId))
+}
 
 func main() {
 	flag.Parse()
@@ -40,6 +61,6 @@ func main() {
 	defer lf.Close()
 	defer logger.Init("fb-colly", *verbose, false, lf).Close()
 	f := fbcolly.New()
-	f.Login(*email, *password, *otp)
+	err = f.Login(*email, *password, *otp)
 	f.FetchGroupFeed(*groupId)
 }
