@@ -10,7 +10,7 @@ import (
 	"github.com/gocolly/colly/extensions"
 	"github.com/gocolly/colly/storage"
 	"github.com/google/logger"
-	"qnetwork.net/fbcrawl/fbcrawl"
+	"net/url"
 	"strings"
 )
 
@@ -182,10 +182,11 @@ func (f *Fbcolly) Login(email string, password string, otp string) error {
 	return err
 }
 
-func (f *Fbcolly) FetchGroupFeed(groupId string) fbcrawl.FacebookGroup {
-	collector := f.collector.Clone()
+func (f *Fbcolly) FetchGroupFeed(groupId string) (error, []string) {
+	collector := f.collector.Clone()	``
 	err := setupSharedCollector(collector)
 	currentPage := 1
+	var result []string
 
 	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
 		currentPage++
@@ -197,8 +198,9 @@ func (f *Fbcolly) FetchGroupFeed(groupId string) fbcrawl.FacebookGroup {
 
 	//TODO: May not need this
 	collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
-		url := "http://mbasic.facebook.com" + element.Attr("href")
-		logger.Info("Post url found ", url)
+		u, _ := url.Parse("http://mbasic.facebook.com" + element.Attr("href"))
+
+		result = append(result, u.Query().Get("id"))
 		//f.detailCollector.Visit(url)
 	})
 
@@ -206,5 +208,5 @@ func (f *Fbcolly) FetchGroupFeed(groupId string) fbcrawl.FacebookGroup {
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
-	return fbcrawl.FacebookGroup{Name: "TODO:", Id: "TODO:"}
+	return err, result
 }
