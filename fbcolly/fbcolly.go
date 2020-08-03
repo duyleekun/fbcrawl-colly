@@ -15,30 +15,11 @@ import (
 )
 
 type fbcolly struct {
-	//authCollector   *colly.Collector
-	//groupCollector  *colly.Collector
-	//detailCollector *colly.Collector
 	collector *colly.Collector
 	email     string
 	password  string
 	otp       string
 }
-
-//type FacebookGroup struct {
-//
-//}
-//
-//type FacebookPost struct {
-//
-//}
-//
-//type FacebookComment struct {
-//
-//}
-//
-//type FacebookAuthor struct {
-//
-//}
 
 func sharedOnRequest(request *colly.Request) {
 	logger.Info("OnRequest")
@@ -58,8 +39,8 @@ func sharedOnRequest(request *colly.Request) {
 	request.ResponseCharacterEncoding = "utf-8"
 }
 
-func (f *fbcolly) setupGroupPostCollector() error {
-	err, collector := setupSharedCollector(f.detailCollector)
+func (f *fbcolly) setupGroupPostCollector(collector *colly.Collector) error {
+	err := setupSharedCollector(collector)
 
 	collector.OnHTML("#m_story_permalink_view", func(element *colly.HTMLElement) {
 		dataElement := element.DOM.Find("div[data-ft]")
@@ -89,8 +70,75 @@ func (f *fbcolly) setupGroupPostCollector() error {
 	return err
 }
 
-func (f *fbcolly) setupAuthCollector() error {
-	err, collector := setupSharedCollector(f.authCollector)
+func setupSharedCollector(collector *colly.Collector) (error) {
+	var err error
+	extensions.Referer(collector)
+
+	collector.OnRequest(sharedOnRequest)
+	collector.OnResponse(sharedOnResponse)
+	collector.OnError(func(resp *colly.Response, errHttp error) {
+		err = errHttp
+		logger.Error("OnError", err)
+	})
+	return err
+}
+
+func sharedOnResponse(response *colly.Response) {
+	logger.Info("OnResponse ./last.html")
+	_ = response.Save("./last.html")
+	//logger.Info(string(resp.Body))
+}
+
+func getForm(element *colly.HTMLElement, err error) (string, error, map[string]string) {
+	submitUrl, exists := element.DOM.Attr("action")
+	if !exists {
+		err = errors.New("doesn't have action label")
+		return "", nil, nil
+	}
+	submitUrl = fmt.Sprintf("https://mbasic.facebook.com%s", submitUrl)
+	logger.Info("form url is:", submitUrl)
+	reqMap := make(map[string]string)
+	element.DOM.Find("input").Each(func(i int, s *goquery.Selection) {
+		name, _ := s.Attr("name")
+		value, _ := s.Attr("value")
+		if name != "" && name != "sign_up" && name != "submit[logout-button-with-confirm]" {
+			reqMap[name] = value
+		}
+	})
+	return submitUrl, err, reqMap
+}
+
+func New() *fbcolly {
+	f := fbcolly{}
+
+	f.collector = colly.NewCollector()
+
+	//collector.SetProxy("socks5://localhost:8889")
+
+	//f.authCollector = collector.Clone()
+	//f.groupCollector = collector.Clone()
+	//f.detailCollector = collector.Clone()
+	//f.setupAuthCollector()
+	//f.setupGroupCollector()
+	//f.setupGroupPostCollector()
+
+	return &f
+}
+
+func (f *fbcolly) Login(email string, password string, otp string) error {
+	collector := f.collector.Clone()
+	setupSharedCollector(collector)
+
+	logger.Info("Login using email", email)
+
+	f.email = email
+	f.password = password
+	f.otp = otp
+
+	err := f.collector.Visit("https://mbasic.facebook.com/")
+	if err != nil {
+		logger.Error("crawl by colly err:", err)
+	}
 
 	collector.OnHTML("#login_form", func(element *colly.HTMLElement) {
 		logger.Info("OnHTML login_form")
@@ -142,79 +190,12 @@ func (f *fbcolly) setupAuthCollector() error {
 		logger.Info("I'm IN HOME, navigate to page now")
 	})
 
-	return err
-}
-
-func setupSharedCollector(collector *colly.Collector) (error, *colly.Collector) {
-	var err error
-	extensions.Referer(collector)
-
-	collector.OnRequest(sharedOnRequest)
-	collector.OnResponse(sharedOnResponse)
-	collector.OnError(func(resp *colly.Response, errHttp error) {
-		err = errHttp
-		logger.Error("OnError", err)
-	})
-	return err, collector
-}
-
-func sharedOnResponse(response *colly.Response) {
-	logger.Info("OnResponse ./last.html")
-	_ = response.Save("./last.html")
-	//logger.Info(string(resp.Body))
-}
-
-func getForm(element *colly.HTMLElement, err error) (string, error, map[string]string) {
-	submitUrl, exists := element.DOM.Attr("action")
-	if !exists {
-		err = errors.New("doesn't have action label")
-		return "", nil, nil
-	}
-	submitUrl = fmt.Sprintf("https://mbasic.facebook.com%s", submitUrl)
-	logger.Info("form url is:", submitUrl)
-	reqMap := make(map[string]string)
-	element.DOM.Find("input").Each(func(i int, s *goquery.Selection) {
-		name, _ := s.Attr("name")
-		value, _ := s.Attr("value")
-		if name != "" && name != "sign_up" && name != "submit[logout-button-with-confirm]" {
-			reqMap[name] = value
-		}
-	})
-	return submitUrl, err, reqMap
-}
-
-func New() *fbcolly {
-	f := fbcolly{}
-
-	collector := colly.NewCollector()
-	//collector.SetProxy("socks5://localhost:8889")
-
-	f.authCollector = collector.Clone()
-	f.groupCollector = collector.Clone()
-	f.detailCollector = collector.Clone()
-	f.setupAuthCollector()
-	f.setupGroupCollector()
-	f.setupGroupPostCollector()
-
-	return &f
-}
-
-func (f *fbcolly) Login(email string, password string, otp string) {
-	logger.Info("Login using email", email)
-
-	f.email = email
-	f.password = password
-	f.otp = otp
-
-	err := f.authCollector.Visit("https://mbasic.facebook.com/")
-	if err != nil {
-		logger.Error("crawl by colly err:", err)
-	}
+	return err, collector.cook collector.Cookies("https://mbasic.facebook.com/")
 }
 
 func (f *fbcolly) FetchGroupFeed(groupId string) fbcrawl.FacebookGroup {
-	groupCollector := f.collector.Clone()
-	err, collector := setupSharedCollector(groupCollector)
+	collector := f.collector.Clone()
+	err := setupSharedCollector(collector)
 	currentPage := 1
 
 	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
@@ -225,13 +206,14 @@ func (f *fbcolly) FetchGroupFeed(groupId string) fbcrawl.FacebookGroup {
 		}
 	})
 
-	collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
-		url := "http://mbasic.facebook.com" + element.Attr("href")
-		logger.Info("Post url found ", url)
-		f.detailCollector.Visit(url)
-	})
+	//TODO: May not need this
+	//collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
+	//	url := "http://mbasic.facebook.com" + element.Attr("href")
+	//	logger.Info("Post url found ", url)
+	//	f.detailCollector.Visit(url)
+	//})
 
-	err := f.groupCollector.Visit("https://mbasic.facebook.com/groups/" + groupId)
+	err = collector.Visit("https://mbasic.facebook.com/groups/" + groupId)
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
