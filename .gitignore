@@ -2,7 +2,6 @@
 /parse.log
 last.html
 *.db
-/fbcolly.so
-/fbcolly.h
 /fbcrawl/fbcrawl.pb.go
-/fbcrawl_pb.rb
+/lib/fbcrawl_pb.rb
+*.gem
