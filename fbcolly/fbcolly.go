@@ -11,6 +11,8 @@ import (
 	"github.com/gocolly/colly/storage"
 	"github.com/google/logger"
 	"net/url"
+	"qnetwork.net/fbcrawl/fbcrawl"
+	"regexp"
 	"strings"
 )
 
@@ -34,37 +36,6 @@ func sharedOnRequest(request *colly.Request) {
 	//referer: https://mbasic.facebook.com/checkpoint/?_rdr
 	request.Headers.Set("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; Moto G (4)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Mobile Safari/537.36")
 	request.ResponseCharacterEncoding = "utf-8"
-}
-
-func (f *Fbcolly) setupGroupPostCollector(collector *colly.Collector) error {
-	err := setupSharedCollector(collector)
-
-	collector.OnHTML("#m_story_permalink_view", func(element *colly.HTMLElement) {
-		dataElement := element.DOM.Find("div[data-ft]")
-		if dataElement.Length() > 0 {
-			var result map[string]interface{}
-			jsonData, isExist := dataElement.Attr("data-ft")
-			if isExist {
-				json.Unmarshal([]byte(jsonData), &result)
-				logger.Info("Post ", result)
-				//Content
-				logger.Info(strings.Join(dataElement.Find("p").Map(func(i int, selection *goquery.Selection) string {
-					return selection.Text()
-				}), "\n"))
-
-			}
-
-			//Comment
-			element.DOM.Find("h3 + div + div + div").Parent().Each(func(i int, selection *goquery.Selection) {
-				//author
-				logger.Info("comment")
-				logger.Info(selection.Find("h3 > a").Text())
-				logger.Info(selection.Find("h3 + div").Text())
-			})
-		}
-	})
-
-	return err
 }
 
 func setupSharedCollector(collector *colly.Collector) error {
@@ -182,11 +153,11 @@ func (f *Fbcolly) Login(email string, password string, otp string) error {
 	return err
 }
 
-func (f *Fbcolly) FetchGroupFeed(groupId string) (error, []string) {
+func (f *Fbcolly) FetchGroupFeed(groupId string) (error, *fbcrawl.FacebookPostList) {
 	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
 	currentPage := 1
-	var result []string
+	var result []*fbcrawl.FacebookPost
 
 	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
 		currentPage++
@@ -200,7 +171,10 @@ func (f *Fbcolly) FetchGroupFeed(groupId string) (error, []string) {
 	collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
 		u, _ := url.Parse("http://mbasic.facebook.com" + element.Attr("href"))
 
-		result = append(result, u.Query().Get("id"))
+		result = append(result, &fbcrawl.FacebookPost{
+			Id:    u.Query().Get("id"),
+			Group: &fbcrawl.FacebookGroup{Id: groupId},
+		})
 		//f.detailCollector.Visit(url)
 	})
 
@@ -208,5 +182,53 @@ func (f *Fbcolly) FetchGroupFeed(groupId string) (error, []string) {
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
-	return err, result
+	return err, &fbcrawl.FacebookPostList{Posts: result}
+}
+
+func (f *Fbcolly) FetchPost(groupId string, postId string) (error, *fbcrawl.FacebookPost) {
+	collector := f.collector.Clone()
+	err := setupSharedCollector(collector)
+	post := &fbcrawl.FacebookPost{}
+	collector.OnHTML("#m_story_permalink_view", func(element *colly.HTMLElement) {
+		dataElement := element.DOM.Find("div[data-ft]")
+		if dataElement.Length() > 0 {
+			var result map[string]string
+			jsonData, isExist := dataElement.Attr("data-ft")
+			if isExist {
+				json.Unmarshal([]byte(jsonData), &result)
+				logger.Info("Post ", result)
+				post.Id = result["top_level_post_id"]
+				post.Group = &fbcrawl.FacebookGroup{Id: result["page_id"], Name: dataElement.Find("h3 strong:last-child a").Text()}
+				post.User = &fbcrawl.FacebookUser{Id: result["content_owner_id_new"], Name: dataElement.Find("h3 strong:first-child a").Text()}
+				//Content
+				post.Content = strings.Join(dataElement.Find("p").Map(func(i int, selection *goquery.Selection) string {
+					return selection.Text()
+				}), "\n")
+
+				logger.Info("content", strings.Join(dataElement.Find("p").Map(func(i int, selection *goquery.Selection) string {
+					return selection.Text()
+				}), "\n"))
+			}
+			post.Comments = []*fbcrawl.FacebookComment{}
+			//Comment
+			element.DOM.Find("h3 + div + div + div").Parent().Parent().Each(func(i int, selection *goquery.Selection) {
+				//author
+				commentId := selection.AttrOr("id", "")
+				logger.Info("comment", commentId)
+				//idRegex, _ := regexp.Compile("")
+				//idRegex.FindString()
+				post.Comments = append(post.Comments, &fbcrawl.FacebookComment{
+					Id:   commentId,
+					Post: &fbcrawl.FacebookPost{Id: post.Id},
+					User: &fbcrawl.FacebookUser{
+						Id:   regexp.MustCompile("/([\\d\\w.]+)").FindStringSubmatch(selection.Find("h3 > a").AttrOr("href", ""))[1],
+						Name: selection.Find("h3 > a").Text(),
+					},
+					Content: selection.Find("h3 + div").Text(),
+				})
+			})
+		}
+	})
+	collector.Visit(fmt.Sprintf("http://mbasic.facebook.com/groups/%s?view=permalink&id=%s&_rdr", groupId, postId))
+	return err, post
 }
