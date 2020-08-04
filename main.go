@@ -14,9 +14,12 @@ import "C"
 
 import (
 	"flag"
+	"github.com/golang/protobuf/proto"
 	"github.com/google/logger"
+	"github.com/thoas/go-funk"
 	"os"
 	"qnetwork.net/fbcrawl/fbcolly"
+	"qnetwork.net/fbcrawl/fbcrawl"
 	"unsafe"
 )
 
@@ -43,9 +46,14 @@ func Login(pointer unsafe.Pointer, email *C.char, password *C.char) {
 }
 
 //export FetchGroupFeed
-func FetchGroupFeed(pointer unsafe.Pointer, groupId *C.char, password *C.char) {
+func FetchGroupFeed(pointer unsafe.Pointer, groupId *C.char) *C.char {
 	p := (*fbcolly.Fbcolly)(pointer)
-	p.FetchGroupFeed(C.GoString(groupId))
+	_, a := p.FetchGroupFeed(C.GoString(groupId))
+
+	b, _ := proto.Marshal(&fbcrawl.FacebookPostList{Posts: funk.Map(a, func(id string) *fbcrawl.FacebookPost {
+		return &fbcrawl.FacebookPost{Id: id}
+	}).([]*fbcrawl.FacebookPost)})
+	return C.char(append(b, 0))
 }
 
 func main() {

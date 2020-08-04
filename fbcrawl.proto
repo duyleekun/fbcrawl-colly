@@ -28,3 +28,7 @@ message FacebookComment {
   string id = 1;
   string content = 2;
 }
+
+message FacebookPostList {
+  repeated FacebookPost posts = 1;
+}

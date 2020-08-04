@@ -183,7 +183,7 @@ func (f *Fbcolly) Login(email string, password string, otp string) error {
 }
 
 func (f *Fbcolly) FetchGroupFeed(groupId string) (error, []string) {
-	collector := f.collector.Clone()	``
+	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
 	currentPage := 1
 	var result []string
