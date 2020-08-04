@@ -1,7 +1,16 @@
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+*.gem
+
 *.iml
 /parse.log
 last.html
 *.db
 /fbcrawl/fbcrawl.pb.go
 /lib/fbcrawl_pb.rb
-*.gem

@@ -1,15 +1,35 @@
-require 'rake/file_list'
-Gem::Specification.new do |s|
-  s.name = %q{fbcrawl-colly}
-  s.version = "0.0.1"
-  s.author = "duyleekun"
-  s.date = %q{2020-08-04}
-  s.summary = %q{fbcrawl_colly}
-  s.files = Rake::FileList['ext/**/*','fbcolly/**/*','fbcrawl.proto','go.mod','go.sum','lib/**/*','main.go'].map(&:to_s)
-  s.extensions = [
+require_relative 'lib/fbcrawl-colly/version'
+
+Gem::Specification.new do |spec|
+  spec.name          = "fbcrawl-colly"
+  spec.version       = FbcrawlColly::VERSION
+  spec.authors       = ["Duy Le"]
+  spec.email         = ["duyleekun@gmail.com"]
+
+  spec.summary       = %q{Crawl mbasic.facebook.com using GO Colly}
+  spec.description   = %q{Crawl mbasic.facebook.com using GO Colly}
+  spec.homepage      = "http://github.com/duyleekun/fbcrawl-colly"
+  spec.license       = "MIT"
+  spec.required_ruby_version = Gem::Requirement.new(">= 2.3.0")
+
+  # spec.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
+
+  spec.metadata["homepage_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = "http://github.com/duyleekun/fbcrawl-colly"
+  spec.metadata["changelog_uri"] = "http://github.com/duyleekun/fbcrawl-colly"
+
+  # Specify which files should be added to the gem when it is released.
+  # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
+  spec.files         = Dir.chdir(File.expand_path('..', __FILE__)) do
+    `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
+  end
+  # spec.bindir        = "exe"
+  # spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  spec.extensions = [
       'ext/fbcrawl_colly/extconf.rb'
   ]
-  s.require_paths = ["lib"]
-  s.add_runtime_dependency 'ffi'
-  s.add_runtime_dependency 'google-protobuf'
+  spec.require_paths = ["lib"]
+
+  spec.add_runtime_dependency 'ffi'
+  spec.add_runtime_dependency 'google-protobuf'
 end
