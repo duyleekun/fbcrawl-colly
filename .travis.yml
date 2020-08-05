@@ -1,6 +1,19 @@
----
 language: ruby
 cache: bundler
 rvm:
-  - 2.7.1
-before_install: gem install bundler -v 2.1.4
+- 2.7.1
+before_install:
+  - sudo add-apt-repository ppa:longsleep/golang-backports
+  - sudo apt update
+  - sudo apt install golang-go protobuf-compiler
+  - go get github.com/golang/protobuf/protoc-gen-go
+  - gem install bundler -v 2.1.4
+deploy:
+  provider: rubygems
+  api_key:
+    secure: Gn1pKS/8ktAXzFK5yTE3CYQmVKhyAIC7eVk05I/01KVNW4FLgIkmeyv5hDOr4IV8xQ8ida6r3rnDVGcYXu0YSU6QBmD1bMIrO85+DG1+fiK2+MkXb7OoBSXTkNq4bXUT3WnKM1MZilH4WHj6YlODIvc1BYd/33PeM72VEhTJzig8gSdx0ZeUa1hoLQU4ZFGwUBImZS62iVvkXNWn5hfZZ1MOu/09cm+G58p96EvxSZQ2I3X2WYRURQd95MS/t0jN0Z5Rrx5PMYMYjMBbXlu0FqYffvA0UjnpIrXSzzF6klbitMY3RRe1bnqAnNWoH84eK37hiDhhpEymYhPpPS/4uCgAl63+oukGtm7yHYEMVKGs2nEZXbcENpiF4tiwVoMEvLd15vcxKQPdppX7F9CyVcn96P/XnTfEWhcBFtfsgNiR/N2crL6oq6U35Dz+jKxu2RjsgYCL6yrq/IjqP4Uol+X6br2LvTNmf9NILHU3QZz87XVCpklVhdCynEPY9ODJnHAynhQXiLORh0RyBQzdjkfWduYXE8tPj7k7BLaGAMkEFeNnBMQmOYmSnii8kx8Gy1fN26okJXgJI9GVmf6nWKAdfafRuujRJ0PDL6IyDJ4WRKOQbJ06v72KbglbE0Viswv/AlOZVkeU7m6olMXU3BjbsfrwdElpg4Tb2NAMEtg=
+  gem: fbcrawl-colly
+  on:
+    tags: true
+    repo: duyleekun/fbcrawl-colly
+  skip_cleanup: 'true'

@@ -1,0 +1,28 @@
+PATH
+  remote: .
+  specs:
+    fbcrawl-colly (0.1.0)
+      ffi
+      google-protobuf
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ffi (1.13.1)
+    google-protobuf (3.12.4)
+    minitest (5.14.1)
+    rake (12.3.3)
+    rake-compiler (1.1.1)
+      rake
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  fbcrawl-colly!
+  minitest (~> 5.0)
+  rake (~> 12.0)
+  rake-compiler
+
+BUNDLED WITH
+   2.1.4

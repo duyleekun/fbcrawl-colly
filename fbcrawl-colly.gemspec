@@ -1,4 +1,4 @@
-require_relative 'lib/fbcrawl-colly/version'
+require_relative 'lib/fbcrawl_colly/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "fbcrawl-colly"
@@ -32,4 +32,5 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'ffi'
   spec.add_runtime_dependency 'google-protobuf'
+  spec.add_development_dependency 'rake-compiler'
 end
