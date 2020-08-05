@@ -1,5 +1,5 @@
 require 'ffi'
-require './fbcrawl_pb'
+require 'fbcrawl_pb'
 module FbcrawlColly
   extend FFI::Library
 
@@ -11,6 +11,4 @@ module FbcrawlColly
   attach_function :FetchGroupFeed, [:pointer, :string], :string
   attach_function :FetchPost, [:pointer, :string, :string], :string
   # attach_function :FetchGroup, [:pointer, :string], :pointer
-  # attach_function :Login, [:pointer, :string, :string, :string], :void
-  # attach_function :FreePointer, [:pointer], :void
 end
