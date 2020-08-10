@@ -27,11 +27,19 @@ var password = flag.String("password", "change_me", "facebook password")
 var otp = flag.String("otp", "123456", "facebook otp")
 var groupId = flag.String("groupId", "334294967318328", "facebook group id, default is 334294967318328")
 
-var tmp = fbcolly.New()
+var allInstances = map[uintptr]*fbcolly.Fbcolly{}
 
 //export Init
 func Init() uintptr {
-	return (uintptr)(unsafe.Pointer(tmp))
+	instance := fbcolly.New()
+	ptr := (uintptr)(unsafe.Pointer(instance))
+	allInstances[ptr] = instance
+	return ptr
+}
+
+//export FreeColly
+func FreeColly(pointer unsafe.Pointer) {
+	delete(allInstances, uintptr(pointer))
 }
 
 //export Login
