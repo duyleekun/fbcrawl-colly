@@ -15,7 +15,7 @@ module FbcrawlColly
 
     def fetch_group_feed(group_id)
       s, ptr = FbcrawlColly::FFI.FetchGroupFeed(@colly, group_id)
-      list = FacebookPostList.decode(s)
+      list = FbcrawlColly::FacebookPostList.decode(s)
       FbcrawlColly::FFI.free(ptr)
       list
     end
@@ -23,7 +23,7 @@ module FbcrawlColly
     def fetch_post(group_id, post_id)
       FbcrawlColly::FFI.Login(@colly, email, password)
       s, ptr = FbcrawlColly::FFI.FetchPost(@colly, group_id, post_id)
-      post = FacebookPost.decode(s)
+      post = FbcrawlColly::FacebookPost.decode(s)
       FbcrawlColly::FFI.free(ptr)
       post
     end

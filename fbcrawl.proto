@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+package fbcrawl_colly;
 option go_package = "./fbcrawl;fbcrawl";
 
 // The request message containing the user's name.
