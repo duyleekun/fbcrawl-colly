@@ -62,7 +62,7 @@ func sharedOnRequest(request *colly.Request) {
 func setupSharedCollector(collector *colly.Collector) error {
 	var err error
 	extensions.Referer(collector)
-
+	collector.AllowURLRevisit = true
 	collector.OnRequest(sharedOnRequest)
 	collector.OnResponse(sharedOnResponse)
 	collector.OnError(func(resp *colly.Response, errHttp error) {

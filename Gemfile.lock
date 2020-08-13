@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    fbcrawl-colly (0.2.1)
+    fbcrawl-colly (0.2.2)
       ffi
       google-protobuf
 
