@@ -31,6 +31,7 @@ class FbcrawlCollyTest < Minitest::Test
     assert p.id
     assert_equal p.content, 'test_text_only_post'
     assert p.created_at > 0
+    assert p.reaction_count > 0
     first_comment = p.comments.first
     assert first_comment
     assert first_comment.id

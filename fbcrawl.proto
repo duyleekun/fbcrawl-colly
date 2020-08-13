@@ -24,6 +24,7 @@ message FacebookPost {
   repeated FacebookImage content_images = 7;
   repeated FacebookComment comments = 5;
   int64 created_at = 9;
+  int64 reaction_count = 10;
 }
 
 message FacebookImage {

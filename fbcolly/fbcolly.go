@@ -300,7 +300,7 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64) (error, *fbcrawl.Facebo
 				}
 
 				post.ContentLink = getUrlFromRedirectHref(dataElement.Find("a[href*=\"https://lm.facebook.com/l.php\"]").AttrOr("href", ""))
-
+				post.ReactionCount = getReactionFromText(element.DOM.Find("div[id*=\"sentence_\"]").Text())
 				post.ContentImages = (funk.Map(result.PhotoAttachmentsList, func(id string) *fbcrawl.FacebookImage {
 					i, _ := strconv.ParseInt(id, 10, 64)
 					return &fbcrawl.FacebookImage{
@@ -373,4 +373,13 @@ func getImageIdFromHref(href string) int64 {
 	u, _ := url.Parse(href)
 	i, _ := strconv.ParseInt(u.Query().Get("fbid"), 10, 64)
 	return i
+}
+
+func getReactionFromText(text string) int64 {
+	logger.Error("reaction", text)
+	if len(text) > 0 {
+		id, _ := strconv.ParseInt(regexp.MustCompile("(\\d+)").FindStringSubmatch(text)[1], 10, 64)
+		return id
+	}
+	return 0
 }
