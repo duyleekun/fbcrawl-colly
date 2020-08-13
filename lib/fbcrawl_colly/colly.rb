@@ -10,7 +10,13 @@ module FbcrawlColly
     end
 
     def login(email, password)
-      FbcrawlColly::FFI.Login(@colly, email, password)
+      s, ptr = FbcrawlColly::FFI.Login(@colly, email, password)
+      FbcrawlColly::FFI.free(ptr)
+      s
+    end
+
+    def login_with_cookies(cookies)
+      FbcrawlColly::FFI.LoginWithCookies(@colly, cookies)
     end
 
     def fetch_group_feed(group_id)
@@ -21,11 +27,24 @@ module FbcrawlColly
     end
 
     def fetch_post(group_id, post_id)
-      FbcrawlColly::FFI.Login(@colly, email, password)
       s, ptr = FbcrawlColly::FFI.FetchPost(@colly, group_id, post_id)
       post = FbcrawlColly::FacebookPost.decode(s)
       FbcrawlColly::FFI.free(ptr)
       post
+    end
+
+    def fetch_content_images(post_id)
+      s, ptr = FbcrawlColly::FFI.FetchContentImages(@colly, post_id)
+      imageList = FbcrawlColly::FacebookImageList.decode(s)
+      FbcrawlColly::FFI.free(ptr)
+      imageList
+    end
+
+    def fetch_image_url(image_id)
+      s, ptr = FbcrawlColly::FFI.FetchImageUrl(@colly, image_id)
+      image = FbcrawlColly::FacebookImage.decode(s)
+      FbcrawlColly::FFI.free(ptr)
+      image
     end
   end
 end

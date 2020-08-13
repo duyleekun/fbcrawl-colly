@@ -43,26 +43,51 @@ func FreeColly(pointer unsafe.Pointer) {
 }
 
 //export Login
-func Login(pointer unsafe.Pointer, email *C.char, password *C.char) {
+func Login(pointer unsafe.Pointer, email *C.char, password *C.char) *C.char {
 	p := (*fbcolly.Fbcolly)(pointer)
-	//print(p.E)
-	p.Login(C.GoString(email), C.GoString(password), "")
+	cookies, err := p.Login(C.GoString(email), C.GoString(password), "")
+	if err == nil {
+		return C.CString(cookies)
+	}
+	return nil
+}
+
+//export LoginWithCookies
+func LoginWithCookies(pointer unsafe.Pointer, cookies *C.char) {
+	p := (*fbcolly.Fbcolly)(pointer)
+	p.LoginWithCookies(C.GoString(cookies))
 }
 
 //export FetchGroupFeed
-func FetchGroupFeed(pointer unsafe.Pointer, groupId *C.char) unsafe.Pointer {
+func FetchGroupFeed(pointer unsafe.Pointer, groupId int64) unsafe.Pointer {
 	p := (*fbcolly.Fbcolly)(pointer)
-	_, postsList := p.FetchGroupFeed(C.GoString(groupId))
+	_, postsList := p.FetchGroupFeed(groupId)
 	marshaledPostsList, _ := proto.Marshal(postsList)
 	return C.CBytes(append(marshaledPostsList, 0))
 }
 
 //export FetchPost
-func FetchPost(pointer unsafe.Pointer, groupId *C.char, postId *C.char) unsafe.Pointer {
+func FetchPost(pointer unsafe.Pointer, groupId int64, postId int64) unsafe.Pointer {
 	p := (*fbcolly.Fbcolly)(pointer)
-	_, post := p.FetchPost(C.GoString(groupId), C.GoString(postId))
+	_, post := p.FetchPost(groupId, postId)
 	marshaledPost, _ := proto.Marshal(post)
 	return C.CBytes(append(marshaledPost, 0))
+}
+
+//export FetchContentImages
+func FetchContentImages(pointer unsafe.Pointer, postId int64) unsafe.Pointer {
+	p := (*fbcolly.Fbcolly)(pointer)
+	_, imageList := p.FetchContentImages(postId)
+	marshaled, _ := proto.Marshal(imageList)
+	return C.CBytes(append(marshaled, 0))
+}
+
+//export FetchImageUrl
+func FetchImageUrl(pointer unsafe.Pointer, imageId int64) unsafe.Pointer {
+	p := (*fbcolly.Fbcolly)(pointer)
+	_, image := p.FetchImageUrl(imageId)
+	marshaled, _ := proto.Marshal(image)
+	return C.CBytes(append(marshaled, 0))
 }
 
 func main() {

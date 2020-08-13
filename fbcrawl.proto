@@ -5,30 +5,44 @@ option go_package = "./fbcrawl;fbcrawl";
 
 // The request message containing the user's name.
 message FacebookGroup {
-  string id = 1;
+  int64 id = 1;
   string name = 2;
 }
 
 message FacebookUser {
-  string id = 1;
+  int64 id = 1;
   string name = 2;
 }
 
 message FacebookPost {
-  string id = 1;
+  int64 id = 1;
   FacebookGroup group = 2;
   FacebookUser user = 3;
   string content = 4;
+  string content_link = 6;
+  FacebookImage content_image = 8;
+  repeated FacebookImage content_images = 7;
   repeated FacebookComment comments = 5;
+  int64 created_at = 9;
+}
+
+message FacebookImage {
+  int64 id = 1;
+  string url = 2;
 }
 
 message FacebookComment {
-  string id = 1;
+  int64 id = 1;
   FacebookPost post = 2;
   FacebookUser user = 3;
   string content = 4;
+  int64 created_at = 5;
 }
 
 message FacebookPostList {
   repeated FacebookPost posts = 1;
+}
+
+message FacebookImageList {
+  repeated FacebookImage images = 1;
 }
