@@ -201,16 +201,52 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64) (error, *fbcrawl.FacebookPostLis
 			err = collector.Visit("http://mbasic.facebook.com" + element.Attr("href"))
 		}
 	})
+	collector.OnHTML("div[role=\"article\"]", func(element *colly.HTMLElement) {
+		dataElement := element
+		post := &fbcrawl.FacebookPost{}
+		var fbDataFt FbDataFt
+		jsonData := dataElement.Attr("data-ft")
 
-	collector.OnXML("//a[text()=\"Full Story\"]", func(element *colly.XMLElement) {
-		logger.Info("Post found at", element.Attr("href"))
-		u, _ := url.Parse("http://mbasic.facebook.com" + element.Attr("href"))
-		postId, _ := strconv.ParseInt(u.Query().Get("id"), 10, 64)
-		result = append(result, &fbcrawl.FacebookPost{
-			Id:    postId,
-			Group: &fbcrawl.FacebookGroup{Id: groupId},
-		})
-		//f.detailCollector.Visit(url)
+		logger.Info(jsonData)
+		err = json.Unmarshal([]byte(jsonData), &fbDataFt)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		logger.Info("Post ", fbDataFt)
+		post.Id = fbDataFt.TopLevelPostId
+		post.Group = &fbcrawl.FacebookGroup{Id: fbDataFt.PageId, Name: dataElement.DOM.Find("h3 strong:nth-child(2) a").Text()}
+		post.User = &fbcrawl.FacebookUser{
+			Id:   fbDataFt.ContentOwnerIdNew,
+			Name: dataElement.DOM.Find("h3 strong:nth-child(1) a").Text(),
+		}
+		post.CreatedAt = fbDataFt.PageInsights[strconv.FormatInt(fbDataFt.PageId, 10)].PublishTime
+		//Content
+
+		//NO BACKGROUND TEXT ONLY
+		post.Content = strings.Join(dataElement.DOM.Find("p").Map(func(i int, selection *goquery.Selection) string {
+			return selection.Text()
+		}), "\n")
+
+		if len(post.Content) == 0 {
+			// TEXT WITH BACKGROUND
+			post.Content = dataElement.DOM.Find("div[style*=\"background-image:url\"]").Text()
+		}
+
+		post.ContentLink = getUrlFromRedirectHref(dataElement.DOM.Find("a[href*=\"https://lm.facebook.com/l.php\"]").AttrOr("href", ""))
+		post.ReactionCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"]").Text())
+		post.CommentCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"] ~ a").Text())
+		post.ContentImages = (funk.Map(fbDataFt.PhotoAttachmentsList, func(id string) *fbcrawl.FacebookImage {
+			i, _ := strconv.ParseInt(id, 10, 64)
+			return &fbcrawl.FacebookImage{
+				Id: i,
+			}
+		})).([]*fbcrawl.FacebookImage)
+
+		if fbDataFt.PhotoId > 0 {
+			post.ContentImage = &fbcrawl.FacebookImage{Id: fbDataFt.PhotoId}
+		}
+		result = append(result, post)
 	})
 
 	err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/groups/%d", groupId))
@@ -300,7 +336,7 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64) (error, *fbcrawl.Facebo
 				}
 
 				post.ContentLink = getUrlFromRedirectHref(dataElement.Find("a[href*=\"https://lm.facebook.com/l.php\"]").AttrOr("href", ""))
-				post.ReactionCount = getReactionFromText(element.DOM.Find("div[id*=\"sentence_\"]").Text())
+				post.ReactionCount = getNumberFromText(element.DOM.Find("div[id*=\"sentence_\"]").Text())
 				post.ContentImages = (funk.Map(result.PhotoAttachmentsList, func(id string) *fbcrawl.FacebookImage {
 					i, _ := strconv.ParseInt(id, 10, 64)
 					return &fbcrawl.FacebookImage{
@@ -311,10 +347,6 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64) (error, *fbcrawl.Facebo
 				if result.PhotoId > 0 {
 					post.ContentImage = &fbcrawl.FacebookImage{Id: result.PhotoId}
 				}
-
-				logger.Info("content", strings.Join(dataElement.Find("p").Map(func(i int, selection *goquery.Selection) string {
-					return selection.Text()
-				}), "\n"))
 			}
 
 			//Comment
@@ -375,11 +407,18 @@ func getImageIdFromHref(href string) int64 {
 	return i
 }
 
-func getReactionFromText(text string) int64 {
+func getNumberFromText(text string) int64 {
 	logger.Error("reaction", text)
 	if len(text) > 0 {
-		id, _ := strconv.ParseInt(regexp.MustCompile("(\\d+)").FindStringSubmatch(text)[1], 10, 64)
-		return id
+		match := regexp.MustCompile("(\\d*)\\s?([km]?)").FindStringSubmatch(text)
+		count, _ := strconv.ParseInt(match[1], 10, 64)
+		switch match[2] {
+		case "k":
+			count *= 1000
+		case "m":
+			count *= 1000000
+		}
+		return count
 	}
 	return 0
 }
