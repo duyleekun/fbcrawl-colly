@@ -433,15 +433,17 @@ func getImageIdFromHref(href string) int64 {
 func getNumberFromText(text string) int64 {
 	logger.Error("reaction", text)
 	if len(text) > 0 {
-		match := regexp.MustCompile("(\\d*)\\s?([km]?)").FindStringSubmatch(text)
-		count, _ := strconv.ParseInt(match[1], 10, 64)
-		switch match[2] {
-		case "k":
-			count *= 1000
-		case "m":
-			count *= 1000000
+		match := regexp.MustCompile("(\\d+)\\s?([km]?)").FindStringSubmatch(text)
+		if len(match) > 0 {
+			count, _ := strconv.ParseInt(match[1], 10, 64)
+			switch match[2] {
+			case "k":
+				count *= 1000
+			case "m":
+				count *= 1000000
+			}
+			return count
 		}
-		return count
 	}
 	return 0
 }
