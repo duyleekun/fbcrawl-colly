@@ -20,7 +20,7 @@ class FbcrawlCollyTest < Minitest::Test
   end
 
   def test_group_info
-    p = new_logged_in_colly.fetch_group_info DEFAULT_GROUP_ID
+    p = new_logged_in_colly.fetch_group_info "fbcolly"
     assert p.name.size > 0
     assert p.member_count > 0
     puts p
