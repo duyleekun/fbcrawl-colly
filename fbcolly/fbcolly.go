@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/debug"
 	"github.com/gocolly/colly/extensions"
 	"github.com/gocolly/colly/storage"
 	"github.com/google/logger"
@@ -65,6 +66,7 @@ func setupSharedCollector(collector *colly.Collector) error {
 	collector.AllowURLRevisit = true
 	collector.OnRequest(sharedOnRequest)
 	collector.OnResponse(sharedOnResponse)
+	collector.SetDebugger(&debug.LogDebugger{})
 	collector.OnError(func(resp *colly.Response, errHttp error) {
 		err = errHttp
 		logger.Error("OnError", err)
