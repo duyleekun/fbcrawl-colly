@@ -19,6 +19,13 @@ class FbcrawlCollyTest < Minitest::Test
     assert login_cookies.size > 0
   end
 
+  def test_group_info
+    p = new_logged_in_colly.fetch_group_info DEFAULT_GROUP_ID
+    assert p.name.size > 0
+    assert p.member_count > 0
+    puts p
+  end
+
   def test_group_feed
     p = new_logged_in_colly.fetch_group_feed DEFAULT_GROUP_ID
     assert p.posts.size > 0

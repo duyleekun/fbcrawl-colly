@@ -259,6 +259,25 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64) (error, *fbcrawl.FacebookPostLis
 	return err, &fbcrawl.FacebookPostList{Posts: result}
 }
 
+func (f *Fbcolly) FetchGroupInfo(groupId int64) (error, *fbcrawl.FacebookGroup) {
+	collector := f.collector.Clone()
+	err := setupSharedCollector(collector)
+	result := &fbcrawl.FacebookGroup{Id: groupId}
+
+	collector.OnHTML("a[href=\"#groupMenuBottom\"] h1", func(element *colly.HTMLElement) {
+		result.Name = element.Text
+	})
+	collector.OnHTML("a[href*=\"view=member\"]", func(element *colly.HTMLElement) {
+		result.MemberCount, _ = strconv.ParseInt(element.DOM.Closest("tr").Find("td:last-child").Text(), 10, 64)
+	})
+
+	err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/groups/%d?view=info", groupId))
+	if err != nil {
+		logger.Error("crawl by colly err:", err)
+	}
+	return err, result
+}
+
 func (f *Fbcolly) FetchContentImages(postId int64) (error, *fbcrawl.FacebookImageList) {
 	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
