@@ -59,9 +59,9 @@ func LoginWithCookies(pointer unsafe.Pointer, cookies *C.char) {
 }
 
 //export FetchGroupInfo
-func FetchGroupInfo(pointer unsafe.Pointer, groupId int64) unsafe.Pointer {
+func FetchGroupInfo(pointer unsafe.Pointer, groupIdOrUsername *C.char) unsafe.Pointer {
 	p := (*fbcolly.Fbcolly)(pointer)
-	_, groupInfo := p.FetchGroupInfo(groupId)
+	_, groupInfo := p.FetchGroupInfo(C.GoString(groupIdOrUsername))
 	marshaled, _ := proto.Marshal(groupInfo)
 	return C.CBytes(append(marshaled, 0))
 }

@@ -19,8 +19,8 @@ module FbcrawlColly
       FbcrawlColly::FFI.LoginWithCookies(@colly, cookies)
     end
 
-    def fetch_group_info(group_id)
-      s, ptr = FbcrawlColly::FFI.FetchGroupInfo(@colly, group_id)
+    def fetch_group_info(group_id_or_username)
+      s, ptr = FbcrawlColly::FFI.FetchGroupInfo(@colly, group_id_or_username.to_s)
       list = FbcrawlColly::FacebookGroup.decode(s)
       FbcrawlColly::FFI.free(ptr)
       list

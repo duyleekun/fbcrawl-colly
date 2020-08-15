@@ -9,7 +9,7 @@ module FbcrawlColly::FFI
   attach_function :FreeColly, [:pointer], :pointer
   attach_function :Login, [:pointer, :string, :string], :strptr
   attach_function :LoginWithCookies, [:pointer, :string], :void
-  attach_function :FetchGroupInfo, [:pointer, :int64], :strptr
+  attach_function :FetchGroupInfo, [:pointer, :string], :strptr
   attach_function :FetchGroupFeed, [:pointer, :int64], :strptr
   attach_function :FetchPost, [:pointer, :int64, :int64], :strptr
   attach_function :FetchContentImages, [:pointer, :int64], :strptr
