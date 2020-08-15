@@ -112,20 +112,23 @@ func (f *Fbcolly) Login(email string, password string, otp string) (string, erro
 
 	logger.Info("Login using email", email)
 	loggedIn := false
-
+	firstLogin := true
 	collector.OnHTML("#login_form", func(element *colly.HTMLElement) {
-		logger.Info("OnHTML login_form")
-		loginURL, err, reqMap := getForm(element, err)
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-		reqMap["email"] = email
-		reqMap["pass"] = password
-		logger.Info("req map:", reqMap)
-		err = collector.Post(loginURL, reqMap)
-		if err != nil {
-			logger.Error("post err:", err)
+		if firstLogin {
+			firstLogin = false
+			logger.Info("OnHTML login_form")
+			loginURL, err, reqMap := getForm(element, err)
+			if err != nil {
+				logger.Error(err)
+				return
+			}
+			reqMap["email"] = email
+			reqMap["pass"] = password
+			logger.Info("req map:", reqMap)
+			err = collector.Post(loginURL, reqMap)
+			if err != nil {
+				logger.Error("post err:", err)
+			}
 		}
 	})
 
