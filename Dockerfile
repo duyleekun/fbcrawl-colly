@@ -10,5 +10,5 @@ RUN go get
 
 
 ENV PORT 3000
-RUN build -o server qnetwork.net/fbcrawl #gosetup
+RUN go build -o server qnetwork.net/fbcrawl
 ENTRYPOINT ["./server"]
