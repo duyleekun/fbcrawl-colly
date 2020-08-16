@@ -1,10 +1,11 @@
 require "test_helper"
-require_relative '../lib/fbcrawl-colly'
 
 class FbcrawlCollyTest < Minitest::Test
   DEFAULT_GROUP_ID = 658075901719147
   EMAIL = ENV["FACEBOOK_EMAIL"]
   PASSWORD = ENV["FACEBOOK_PASSWORD"]
+  MOTP_SECRET = ENV["FACEBOOK_MOTP_SECRET"]
+  HOST_AND_PORT = ENV["FBCRAWL_HOST_PORT"]
 
   def setup
     super
@@ -196,19 +197,19 @@ class FbcrawlCollyTest < Minitest::Test
 
   # @return [FbcrawlColly::Client]
   def new_colly
-    FbcrawlColly::Client.new
+    FbcrawlColly::Client.new HOST_AND_PORT
   end
 
   # @return [FbcrawlColly::Client]
   def new_logged_in_colly
     colly = new_colly
     colly.login_with_cookies(login_cookies)
-    return colly
+    colly
   end
 
   def login_cookies
-    colly = FbcrawlColly::Client.new
-    @@login_cookies ||= colly.login EMAIL, PASSWORD
+    colly = FbcrawlColly::Client.new HOST_AND_PORT
+    @@login_cookies ||= colly.login EMAIL, PASSWORD, MOTP_SECRET
   end
 
 end
