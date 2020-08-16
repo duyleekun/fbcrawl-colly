@@ -40,7 +40,7 @@ module FbcrawlColly
     end
     private
     def new_grpc_client
-      FbcrawlColly::Grpc::Stub.new('localhost:50051', :this_channel_is_insecure)
+      FbcrawlColly::Grpc::Stub.new('fbcrawl.de3.qmanga.com:81', :this_channel_is_insecure)
     end
   end
 end

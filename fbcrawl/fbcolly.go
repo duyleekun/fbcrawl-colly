@@ -15,6 +15,7 @@ import (
 	"github.com/olebedev/when/rules/common"
 	"github.com/olebedev/when/rules/en"
 	"github.com/thoas/go-funk"
+	"github.com/xlzd/gotp"
 	"net/url"
 	"qnetwork.net/fbcrawl/fbcrawl/pb"
 	"regexp"
@@ -108,7 +109,7 @@ func New() *Fbcolly {
 	return &f
 }
 
-func (f *Fbcolly) Login(email string, password string, otp string) (string, error) {
+func (f *Fbcolly) Login(email string, password string, totpSecret string) (string, error) {
 	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
 
@@ -157,9 +158,12 @@ func (f *Fbcolly) Login(email string, password string, otp string) (string, erro
 			//logger.Info("Please input OTP")
 			//reader := bufio.NewReader(os.Stdin)
 			//code, _ := reader.ReadString('\n')
-			code := otp[0:6]
-			reqMap["approvals_code"] = code
-			shouldSubmit = true
+			if len(totpSecret) > 0 {
+				code := gotp.NewDefaultTOTP(totpSecret).Now()
+				reqMap["approvals_code"] = code
+				shouldSubmit = true
+			}
+
 		} else {
 			logger.Info("OnHTML Only Continue checkpoint")
 

@@ -1,21 +1,23 @@
 syntax = "proto3";
-import "google/protobuf/empty.proto";
 
 package fbcrawl_colly;
 option go_package = "./fbcrawl/pb;pb";
 
-
 service Grpc {
   // Sends a greeting
-  rpc Init (google.protobuf.Empty) returns (Pointer) {}
-  rpc FreeColly (Pointer) returns (google.protobuf.Empty) {}
+  rpc Init (Empty) returns (Pointer) {}
+  rpc FreeColly (Pointer) returns (Empty) {}
   rpc Login  (LoginRequest) returns (LoginResponse) {}
-  rpc LoginWithCookies  (LoginWithCookiesRequest) returns (google.protobuf.Empty) {}
+  rpc LoginWithCookies  (LoginWithCookiesRequest) returns (Empty) {}
   rpc FetchGroupInfo  (FetchGroupInfoRequest) returns (FacebookGroup) {}
   rpc FetchGroupFeed  (FetchGroupFeedRequest) returns (FacebookPostList) {}
   rpc FetchPost  (FetchPostRequest) returns (FacebookPost) {}
   rpc FetchContentImages  (FetchContentImagesRequest) returns (FacebookImageList) {}
   rpc FetchImageUrl  (FetchImageUrlRequest) returns (FacebookImage) {}
+}
+
+message Empty {
+
 }
 
 message Pointer {
@@ -26,6 +28,7 @@ message LoginRequest {
   Pointer pointer = 1;
   string email = 2;
   string password = 3;
+  string totp_secret = 4;
 }
 
 message LoginResponse {

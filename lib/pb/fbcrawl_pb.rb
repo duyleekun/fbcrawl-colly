@@ -3,9 +3,10 @@
 
 require 'google/protobuf'
 
-require 'google/protobuf/empty_pb'
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("fbcrawl.proto", :syntax => :proto3) do
+    add_message "fbcrawl_colly.Empty" do
+    end
     add_message "fbcrawl_colly.Pointer" do
       optional :address, :int64, 1
     end
@@ -13,6 +14,7 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
       optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
       optional :email, :string, 2
       optional :password, :string, 3
+      optional :totp_secret, :string, 4
     end
     add_message "fbcrawl_colly.LoginResponse" do
       optional :cookies, :string, 1
@@ -94,6 +96,7 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
 end
 
 module FbcrawlColly
+  Empty = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.Empty").msgclass
   Pointer = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.Pointer").msgclass
   LoginRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginRequest").msgclass
   LoginResponse = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginResponse").msgclass

@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
   end
   # spec.bindir        = "exe"
   # spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
-  spec.require_paths = ["lib", "lib/pb"]
+  spec.require_paths = %w[lib lib/pb]
 
   spec.add_runtime_dependency 'google-protobuf'
   spec.add_runtime_dependency 'grpc'

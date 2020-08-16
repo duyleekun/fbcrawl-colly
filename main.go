@@ -4,7 +4,6 @@ import "C"
 import (
 	context "context"
 	"flag"
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/logger"
 	lru "github.com/hashicorp/golang-lru"
 	"google.golang.org/grpc"
@@ -39,33 +38,33 @@ type server struct {
 	pb.GrpcServer
 }
 
-func (s server) Init(ctx context.Context, empty *empty.Empty) (*pb.Pointer, error) {
+func (s server) Init(ctx context.Context, empty *pb.Empty) (*pb.Pointer, error) {
 	instance := fbcolly.New()
 	ptr := (uintptr)(unsafe.Pointer(instance))
 	allInstances.Add(int64(ptr), instance)
 	return &pb.Pointer{Address: int64(ptr)}, nil
 }
 
-func (s server) FreeColly(ctx context.Context, pointer *pb.Pointer) (*empty.Empty, error) {
+func (s server) FreeColly(ctx context.Context, pointer *pb.Pointer) (*pb.Empty, error) {
 	logger.Info("FreeColly")
 	allInstances.Remove(pointer.Address)
-	return &empty.Empty{}, nil
+	return &pb.Empty{}, nil
 }
 
 func (s server) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
 	p := getColly(request.Pointer)
 
-	cookies, err := p.Login(request.Email, request.Password, "")
+	cookies, err := p.Login(request.Email, request.Password, request.TotpSecret)
 	if err == nil {
 		return &pb.LoginResponse{Cookies: cookies}, err
 	}
 	return nil, err
 }
 
-func (s server) LoginWithCookies(ctx context.Context, request *pb.LoginWithCookiesRequest) (*empty.Empty, error) {
+func (s server) LoginWithCookies(ctx context.Context, request *pb.LoginWithCookiesRequest) (*pb.Empty, error) {
 	p := getColly(request.Pointer)
 	err := p.LoginWithCookies(request.Cookies)
-	return &empty.Empty{}, err
+	return &pb.Empty{}, err
 }
 
 func (s server) FetchGroupInfo(ctx context.Context, request *pb.FetchGroupInfoRequest) (*pb.FacebookGroup, error) {
