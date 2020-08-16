@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	"os"
 	"qnetwork.net/fbcrawl/fbcrawl"
 	"qnetwork.net/fbcrawl/fbcrawl/pb"
 	"unsafe"
@@ -98,7 +99,11 @@ func (s server) FetchImageUrl(ctx context.Context, request *pb.FetchImageUrlRequ
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ":50051")
+	port := os.Getenv("FOO")
+	if len(port) == 0 {
+		port = "50051"
+	}
+	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
