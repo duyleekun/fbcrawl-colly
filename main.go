@@ -99,11 +99,12 @@ func (s server) FetchImageUrl(ctx context.Context, request *pb.FetchImageUrlRequ
 }
 
 func main() {
-	port := os.Getenv("FOO")
+	port := os.Getenv("PORT")
 	if len(port) == 0 {
 		port = "50051"
 	}
 	lis, err := net.Listen("tcp", ":"+port)
+	logger.Info("Port listened at", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
