@@ -2,7 +2,7 @@
 
 This project is to crawl mbasic.facebook.com using GO Colly. 
 
-Ruby gem will available to use
+Ruby gem is only client for GRPC colly service
 
 ## Installation
 

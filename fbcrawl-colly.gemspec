@@ -1,4 +1,4 @@
-require_relative 'lib/fbcrawl_colly/version'
+require 'fbcrawl_colly/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "fbcrawl-colly"
@@ -25,12 +25,8 @@ Gem::Specification.new do |spec|
   end
   # spec.bindir        = "exe"
   # spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
-  spec.extensions = [
-      'ext/fbcrawl_colly/extconf.rb'
-  ]
-  spec.require_paths = ["lib"]
+  spec.require_paths = ["lib", "lib/pb"]
 
-  spec.add_runtime_dependency 'ffi'
   spec.add_runtime_dependency 'google-protobuf'
-  spec.add_development_dependency 'rake-compiler'
+  spec.add_runtime_dependency 'grpc'
 end

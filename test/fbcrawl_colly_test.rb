@@ -1,5 +1,5 @@
 require "test_helper"
-require_relative '../lib/fbcrawl_colly/colly'
+require_relative '../lib/fbcrawl-colly'
 
 class FbcrawlCollyTest < Minitest::Test
   DEFAULT_GROUP_ID = 658075901719147
@@ -40,7 +40,7 @@ class FbcrawlCollyTest < Minitest::Test
     assert_equal p.content, 'test_text_only_post'
     assert p.created_at > 0
     assert p.reaction_count > 0
-    first_comment = p.comments.first
+    first_comment = p.comments.comments.first
     assert first_comment
     assert first_comment.id
     assert first_comment.user.id
@@ -125,9 +125,16 @@ class FbcrawlCollyTest < Minitest::Test
     assert_equal p.content, 'test_fifty_photo_post'
     assert p.content_image
     assert_equal 5, p.content_images.size
+    images = []
+    next_cursor = nil
+    loop do
+      r = new_logged_in_colly.fetch_content_images 660082011518536, next_cursor
+      next_cursor = r.next_cursor
+      images += r.images
+      break if next_cursor.empty?
+    end
 
-    images = new_logged_in_colly.fetch_content_images 660082011518536
-    assert_equal images.images.size, 50
+    assert_equal 50, images.size
   end
 
   def test_ten_comments
@@ -137,7 +144,7 @@ class FbcrawlCollyTest < Minitest::Test
     assert p.user.id
     assert p.id
     assert_equal p.content, 'test_ten_comments'
-    assert_equal p.comments.size, 10
+    assert_equal p.comments.comments.size, 10
   end
 
   def test_twenty_comments
@@ -147,7 +154,17 @@ class FbcrawlCollyTest < Minitest::Test
     assert p.user.id
     assert p.id
     assert_equal p.content, 'test_twenty_comments'
-    assert_equal 20, p.comments.size
+
+    comments = []
+    next_cursor = nil
+    loop do
+      r = new_logged_in_colly.fetch_post DEFAULT_GROUP_ID, 660138831512854, next_cursor
+      next_cursor = r.comments.next_cursor
+      comments += r.comments.comments
+      break if next_cursor.empty?
+    end
+
+    assert_equal 20, comments.size
   end
 
   def test_thirty_comments
@@ -157,7 +174,17 @@ class FbcrawlCollyTest < Minitest::Test
     assert p.user.id
     assert p.id
     assert_equal p.content, 'test_thirty_comments'
-    assert_equal 30, p.comments.size
+
+    comments = []
+    next_cursor = nil
+    loop do
+      r = new_logged_in_colly.fetch_post DEFAULT_GROUP_ID, 660143521512385, next_cursor
+      next_cursor = r.comments.next_cursor
+      comments += r.comments.comments
+      break if next_cursor.empty?
+    end
+
+    assert_equal 30, comments.size
   end
 
 
@@ -167,12 +194,12 @@ class FbcrawlCollyTest < Minitest::Test
 
   private
 
-  # @return [FbcrawlColly::Colly]
+  # @return [FbcrawlColly::Client]
   def new_colly
-    FbcrawlColly::Colly.new
+    FbcrawlColly::Client.new
   end
 
-  # @return [FbcrawlColly::Colly]
+  # @return [FbcrawlColly::Client]
   def new_logged_in_colly
     colly = new_colly
     colly.login_with_cookies(login_cookies)
@@ -180,7 +207,7 @@ class FbcrawlCollyTest < Minitest::Test
   end
 
   def login_cookies
-    colly = FbcrawlColly::Colly.new
+    colly = FbcrawlColly::Client.new
     @@login_cookies ||= colly.login EMAIL, PASSWORD
   end
 

@@ -1,7 +1,70 @@
 syntax = "proto3";
+import "google/protobuf/empty.proto";
 
 package fbcrawl_colly;
-option go_package = "./fbcrawl;fbcrawl";
+option go_package = "./fbcrawl/pb;pb";
+
+
+service Grpc {
+  // Sends a greeting
+  rpc Init (google.protobuf.Empty) returns (Pointer) {}
+  rpc FreeColly (Pointer) returns (google.protobuf.Empty) {}
+  rpc Login  (LoginRequest) returns (LoginResponse) {}
+  rpc LoginWithCookies  (LoginWithCookiesRequest) returns (google.protobuf.Empty) {}
+  rpc FetchGroupInfo  (FetchGroupInfoRequest) returns (FacebookGroup) {}
+  rpc FetchGroupFeed  (FetchGroupFeedRequest) returns (FacebookPostList) {}
+  rpc FetchPost  (FetchPostRequest) returns (FacebookPost) {}
+  rpc FetchContentImages  (FetchContentImagesRequest) returns (FacebookImageList) {}
+  rpc FetchImageUrl  (FetchImageUrlRequest) returns (FacebookImage) {}
+}
+
+message Pointer {
+  int64 address = 1;
+}
+
+message LoginRequest {
+  Pointer pointer = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message LoginResponse {
+  string cookies = 1;
+}
+
+message LoginWithCookiesRequest {
+  Pointer pointer = 1;
+  string cookies = 2;
+}
+
+message FetchGroupInfoRequest {
+  Pointer pointer = 1;
+  string group_username = 2;
+}
+
+message FetchGroupFeedRequest {
+  Pointer pointer = 1;
+  int64 group_id = 2;
+  string next_cursor = 3;
+}
+
+message FetchPostRequest {
+  Pointer pointer = 1;
+  int64 group_id = 2;
+  int64 post_id = 3;
+  string comment_next_cursor = 4;
+}
+
+message FetchContentImagesRequest {
+  Pointer pointer = 1;
+  int64 post_id = 2;
+  string next_cursor = 3;
+}
+
+message FetchImageUrlRequest {
+  Pointer pointer = 1;
+  int64 image_id = 2;
+}
 
 // The request message containing the user's name.
 message FacebookGroup {
@@ -20,13 +83,18 @@ message FacebookPost {
   FacebookGroup group = 2;
   FacebookUser user = 3;
   string content = 4;
+  CommentList comments = 5;
   string content_link = 6;
-  FacebookImage content_image = 8;
   repeated FacebookImage content_images = 7;
-  repeated FacebookComment comments = 5;
+  FacebookImage content_image = 8;
   int64 created_at = 9;
   int64 reaction_count = 10;
   int64 comment_count = 11;
+}
+
+message CommentList {
+  repeated FacebookComment comments = 5;
+  string next_cursor = 12;
 }
 
 message FacebookImage {
@@ -44,8 +112,10 @@ message FacebookComment {
 
 message FacebookPostList {
   repeated FacebookPost posts = 1;
+  string next_cursor = 2;
 }
 
 message FacebookImageList {
   repeated FacebookImage images = 1;
+  string next_cursor = 2;
 }

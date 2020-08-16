@@ -16,7 +16,7 @@ import (
 	"github.com/olebedev/when/rules/en"
 	"github.com/thoas/go-funk"
 	"net/url"
-	"qnetwork.net/fbcrawl/fbcrawl"
+	"qnetwork.net/fbcrawl/fbcrawl/pb"
 	"regexp"
 	"strconv"
 	"strings"
@@ -193,22 +193,17 @@ func (f *Fbcolly) Login(email string, password string, otp string) (string, erro
 
 }
 
-func (f *Fbcolly) FetchGroupFeed(groupId int64) (error, *fbcrawl.FacebookPostList) {
+func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (error, *pb.FacebookPostList) {
 	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
-	currentPage := 1
-	var result []*fbcrawl.FacebookPost
+	result := pb.FacebookPostList{Posts: []*pb.FacebookPost{}}
 
 	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
-		currentPage++
-		if currentPage < 3 {
-			logger.Info("Will fetch page", currentPage)
-			err = collector.Visit("http://mbasic.facebook.com" + element.Attr("href"))
-		}
+		result.NextCursor = "http://mbasic.facebook.com" + element.Attr("href")
 	})
 	collector.OnHTML("div[role=\"article\"]", func(element *colly.HTMLElement) {
 		dataElement := element
-		post := &fbcrawl.FacebookPost{}
+		post := &pb.FacebookPost{}
 		var fbDataFt FbDataFt
 		jsonData := dataElement.Attr("data-ft")
 
@@ -220,8 +215,8 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64) (error, *fbcrawl.FacebookPostLis
 		}
 		logger.Info("Post ", fbDataFt)
 		post.Id = fbDataFt.TopLevelPostId
-		post.Group = &fbcrawl.FacebookGroup{Id: fbDataFt.PageId, Name: dataElement.DOM.Find("h3 strong:nth-child(2) a").Text()}
-		post.User = &fbcrawl.FacebookUser{
+		post.Group = &pb.FacebookGroup{Id: fbDataFt.PageId, Name: dataElement.DOM.Find("h3 strong:nth-child(2) a").Text()}
+		post.User = &pb.FacebookUser{
 			Id:   fbDataFt.ContentOwnerIdNew,
 			Name: dataElement.DOM.Find("h3 strong:nth-child(1) a").Text(),
 		}
@@ -241,30 +236,34 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64) (error, *fbcrawl.FacebookPostLis
 		post.ContentLink = getUrlFromRedirectHref(dataElement.DOM.Find("a[href*=\"https://lm.facebook.com/l.php\"]").AttrOr("href", ""))
 		post.ReactionCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"]").Text())
 		post.CommentCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"] ~ a").Text())
-		post.ContentImages = (funk.Map(fbDataFt.PhotoAttachmentsList, func(id string) *fbcrawl.FacebookImage {
+		post.ContentImages = (funk.Map(fbDataFt.PhotoAttachmentsList, func(id string) *pb.FacebookImage {
 			i, _ := strconv.ParseInt(id, 10, 64)
-			return &fbcrawl.FacebookImage{
+			return &pb.FacebookImage{
 				Id: i,
 			}
-		})).([]*fbcrawl.FacebookImage)
+		})).([]*pb.FacebookImage)
 
 		if fbDataFt.PhotoId > 0 {
-			post.ContentImage = &fbcrawl.FacebookImage{Id: fbDataFt.PhotoId}
+			post.ContentImage = &pb.FacebookImage{Id: fbDataFt.PhotoId}
 		}
-		result = append(result, post)
+		result.Posts = append(result.Posts, post)
 	})
+	if len(nextCursor) > 0 {
+		err = collector.Visit(nextCursor)
+	} else {
+		err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/groups/%d", groupId))
+	}
 
-	err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/groups/%d", groupId))
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
-	return err, &fbcrawl.FacebookPostList{Posts: result}
+	return err, &result
 }
 
-func (f *Fbcolly) FetchGroupInfo(groupIdOrUsername string) (error, *fbcrawl.FacebookGroup) {
+func (f *Fbcolly) FetchGroupInfo(groupIdOrUsername string) (error, *pb.FacebookGroup) {
 	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
-	result := &fbcrawl.FacebookGroup{}
+	result := &pb.FacebookGroup{}
 
 	collector.OnHTML("a[href=\"#groupMenuBottom\"] h1", func(element *colly.HTMLElement) {
 		result.Name = element.Text
@@ -281,36 +280,37 @@ func (f *Fbcolly) FetchGroupInfo(groupIdOrUsername string) (error, *fbcrawl.Face
 	return err, result
 }
 
-func (f *Fbcolly) FetchContentImages(postId int64) (error, *fbcrawl.FacebookImageList) {
+func (f *Fbcolly) FetchContentImages(postId int64, nextCursor string) (error, *pb.FacebookImageList) {
 	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
-	currentPage := 1
-	var result []*fbcrawl.FacebookImage
+	result := pb.FacebookImageList{Images: []*pb.FacebookImage{}}
 
 	collector.OnHTML("a[href*=\"/media/set/\"]", func(element *colly.HTMLElement) {
-		currentPage++
-		logger.Info("Will fetch page", currentPage)
-		err = collector.Visit("http://mbasic.facebook.com" + element.Attr("href"))
+		result.NextCursor = "http://mbasic.facebook.com" + element.Attr("href")
 	})
 
 	collector.OnHTML("a[href*=\"/photo.php\"]", func(element *colly.HTMLElement) {
-		result = append(result, &fbcrawl.FacebookImage{
+		result.Images = append(result.Images, &pb.FacebookImage{
 			Id: getImageIdFromHref(element.Attr("href")),
 		})
 		//f.detailCollector.Visit(url)
 	})
+	if len(nextCursor) > 0 {
+		err = collector.Visit(nextCursor)
+	} else {
+		err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/media/set/?set=pcb.%d", postId))
+	}
 
-	err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/media/set/?set=pcb.%d", postId))
 	if err != nil {
 		logger.Error("crawl by colly err:", err)
 	}
-	return err, &fbcrawl.FacebookImageList{Images: result}
+	return err, &result
 }
 
-func (f *Fbcolly) FetchImageUrl(imageId int64) (error, *fbcrawl.FacebookImage) {
+func (f *Fbcolly) FetchImageUrl(imageId int64) (error, *pb.FacebookImage) {
 	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
-	result := fbcrawl.FacebookImage{Id: imageId}
+	result := pb.FacebookImage{Id: imageId}
 
 	collector.OnHTML("a", func(element *colly.HTMLElement) {
 		result.Url = element.Attr("href")
@@ -323,11 +323,10 @@ func (f *Fbcolly) FetchImageUrl(imageId int64) (error, *fbcrawl.FacebookImage) {
 	return err, &result
 }
 
-func (f *Fbcolly) FetchPost(groupId int64, postId int64) (error, *fbcrawl.FacebookPost) {
+func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor string) (error, *pb.FacebookPost) {
 	collector := f.collector.Clone()
 	err := setupSharedCollector(collector)
-	post := &fbcrawl.FacebookPost{Comments: []*fbcrawl.FacebookComment{}}
-	commentPaging := 0
+	post := &pb.FacebookPost{Comments: &pb.CommentList{Comments: []*pb.FacebookComment{}}}
 	collector.OnHTML("#m_story_permalink_view", func(element *colly.HTMLElement) {
 		dataElement := element.DOM.Find("div[data-ft]")
 		if dataElement.Length() > 0 {
@@ -342,8 +341,8 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64) (error, *fbcrawl.Facebo
 				}
 				logger.Info("Post ", result)
 				post.Id = result.TopLevelPostId
-				post.Group = &fbcrawl.FacebookGroup{Id: result.PageId, Name: dataElement.Find("h3 strong:last-child a").Text()}
-				post.User = &fbcrawl.FacebookUser{
+				post.Group = &pb.FacebookGroup{Id: result.PageId, Name: dataElement.Find("h3 strong:last-child a").Text()}
+				post.User = &pb.FacebookUser{
 					Id:   result.ContentOwnerIdNew,
 					Name: dataElement.Find("h3 strong:first-child a").Text(),
 				}
@@ -362,15 +361,15 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64) (error, *fbcrawl.Facebo
 
 				post.ContentLink = getUrlFromRedirectHref(dataElement.Find("a[href*=\"https://lm.facebook.com/l.php\"]").AttrOr("href", ""))
 				post.ReactionCount = getNumberFromText(element.DOM.Find("div[id*=\"sentence_\"]").Text())
-				post.ContentImages = (funk.Map(result.PhotoAttachmentsList, func(id string) *fbcrawl.FacebookImage {
+				post.ContentImages = (funk.Map(result.PhotoAttachmentsList, func(id string) *pb.FacebookImage {
 					i, _ := strconv.ParseInt(id, 10, 64)
-					return &fbcrawl.FacebookImage{
+					return &pb.FacebookImage{
 						Id: i,
 					}
-				})).([]*fbcrawl.FacebookImage)
+				})).([]*pb.FacebookImage)
 
 				if result.PhotoId > 0 {
-					post.ContentImage = &fbcrawl.FacebookImage{Id: result.PhotoId}
+					post.ContentImage = &pb.FacebookImage{Id: result.PhotoId}
 				}
 			}
 
@@ -380,10 +379,10 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64) (error, *fbcrawl.Facebo
 				commentId, _ := strconv.ParseInt(selection.AttrOr("id", ""), 10, 64)
 				logger.Info("comment", commentId)
 				createdAtWhenResult, _ := f.w.Parse(selection.Find("abbr").Text(), time.Now())
-				post.Comments = append(post.Comments, &fbcrawl.FacebookComment{
+				post.Comments.Comments = append(post.Comments.Comments, &pb.FacebookComment{
 					Id:   commentId,
-					Post: &fbcrawl.FacebookPost{Id: post.Id},
-					User: &fbcrawl.FacebookUser{
+					Post: &pb.FacebookPost{Id: post.Id},
+					User: &pb.FacebookUser{
 						Id:   getUserIdFromCommentHref(selection.Find("a[href*=\"#comment_form_\"]").AttrOr("href", "")),
 						Name: selection.Find("h3 > a").Text(),
 					},
@@ -396,14 +395,14 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64) (error, *fbcrawl.Facebo
 	})
 
 	collector.OnHTML("div[id*=\"see_prev_\"] > a", func(element *colly.HTMLElement) {
-		if commentPaging < 3 {
-			logger.Info("Comment paging", commentPaging)
-			err = collector.Visit("http://mbasic.facebook.com" + element.Attr("href"))
-			commentPaging = commentPaging + 1
-		}
+		post.Comments.NextCursor = "http://mbasic.facebook.com" + element.Attr("href")
 	})
+	if len(commentNextCursor) > 0 {
+		err = collector.Visit(commentNextCursor)
+	} else {
+		err = collector.Visit(fmt.Sprintf("http://mbasic.facebook.com/groups/%d?view=permalink&id=%d&_rdr", groupId, postId))
+	}
 
-	err = collector.Visit(fmt.Sprintf("http://mbasic.facebook.com/groups/%d?view=permalink&id=%d&_rdr", groupId, postId))
 	return err, post
 }
 

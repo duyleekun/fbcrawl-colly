@@ -12,8 +12,6 @@
 /parse.log
 last.html
 *.db
-/fbcrawl/fbcrawl.pb.go
-/lib/fbcrawl_pb.rb
 
 mkmf.log
 .rakeTasks
