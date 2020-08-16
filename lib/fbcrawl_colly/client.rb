@@ -1,18 +1,18 @@
 module FbcrawlColly
   class Client
 
-    def initialize
-      super
+    def initialize(host_and_port)
+      @host_and_port = host_and_port
       @client = new_grpc_client
-      @colly = @client.init(Google::Protobuf::Empty.new)
+      @colly = @client.init(FbcrawlColly::Empty.new)
 
       ObjectSpace.define_finalizer(self) do
         new_grpc_client.free_colly(@colly)
       end
     end
 
-    def login(email, password)
-      s = @client.login(FbcrawlColly::LoginRequest.new(pointer: @colly, email: email, password: password)).cookies
+    def login(email, password, totp_secret = "")
+      s = @client.login(FbcrawlColly::LoginRequest.new(pointer: @colly, email: email, password: password, totp_secret: totp_secret)).cookies
     end
 
     def login_with_cookies(cookies)
@@ -40,7 +40,7 @@ module FbcrawlColly
     end
     private
     def new_grpc_client
-      FbcrawlColly::Grpc::Stub.new('fbcrawl.de3.qmanga.com:81', :this_channel_is_insecure)
+      FbcrawlColly::Grpc::Stub.new(@host_and_port, :this_channel_is_insecure)
     end
   end
 end
