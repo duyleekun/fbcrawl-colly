@@ -420,8 +420,12 @@ func (f *Fbcolly) LoginWithCookies(cookies string) error {
 //}
 
 func getUserIdFromCommentHref(href string) int64 {
-	id, _ := strconv.ParseInt(regexp.MustCompile("#comment_form_(\\d+)").FindStringSubmatch(href)[1], 10, 64)
-	return id
+	match := regexp.MustCompile("#comment_form_(\\d+)").FindStringSubmatch(href)
+	if len(match) > 0 {
+		id, _ := strconv.ParseInt(match[1], 10, 64)
+		return id
+	}
+	return 0
 }
 
 func getUrlFromRedirectHref(href string) string {
