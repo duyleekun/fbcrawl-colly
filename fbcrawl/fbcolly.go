@@ -35,7 +35,7 @@ type FbDataInsight struct {
 	FbDataPostContext `json:"post_context"`
 }
 type FbDataFt struct {
-	ContentOwnerIdNew    int64                    `json:"content_owner_id_new"`
+	ContentOwnerIdNew    json.Number              `json:"content_owner_id_new"`
 	PhotoAttachmentsList []string                 `json:"photo_attachments_list"`
 	PhotoId              int64                    `json:"photo_id,string"`
 	PageId               int64                    `json:"page_id,string"`
@@ -220,8 +220,9 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (error, *pb.F
 		logger.Info("Post ", fbDataFt)
 		post.Id = fbDataFt.TopLevelPostId
 		post.Group = &pb.FacebookGroup{Id: fbDataFt.PageId, Name: dataElement.DOM.Find("h3 strong:nth-child(2) a").Text()}
+		userId, _ := fbDataFt.ContentOwnerIdNew.Int64()
 		post.User = &pb.FacebookUser{
-			Id:   fbDataFt.ContentOwnerIdNew,
+			Id:   userId,
 			Name: dataElement.DOM.Find("h3 strong:nth-child(1) a").Text(),
 		}
 		post.CreatedAt = fbDataFt.PageInsights[strconv.FormatInt(fbDataFt.PageId, 10)].PublishTime
@@ -346,8 +347,9 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 				logger.Info("Post ", result)
 				post.Id = result.TopLevelPostId
 				post.Group = &pb.FacebookGroup{Id: result.PageId, Name: dataElement.Find("h3 strong:last-child a").Text()}
+				userId, _ := result.ContentOwnerIdNew.Int64()
 				post.User = &pb.FacebookUser{
-					Id:   result.ContentOwnerIdNew,
+					Id:   userId,
 					Name: dataElement.Find("h3 strong:first-child a").Text(),
 				}
 				post.CreatedAt = result.PageInsights[strconv.FormatInt(result.PageId, 10)].PublishTime
