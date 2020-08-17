@@ -33,6 +33,11 @@ class FbcrawlCollyTest < Minitest::Test
     assert p.posts.size > 0
   end
 
+  def test_fetch_user_info
+    p = new_logged_in_colly.fetch_user_info "duyleekun"
+    puts p
+  end
+
   def test_text_only_post
     p = new_logged_in_colly.fetch_post DEFAULT_GROUP_ID, 658076021719135
     assert p
@@ -44,7 +49,7 @@ class FbcrawlCollyTest < Minitest::Test
     first_comment = p.comments.comments.first
     assert first_comment
     assert first_comment.id
-    assert first_comment.user.id
+    assert first_comment.user.username
     assert first_comment.content.size > 0
     assert first_comment.created_at > 0
     puts Time.at first_comment.created_at

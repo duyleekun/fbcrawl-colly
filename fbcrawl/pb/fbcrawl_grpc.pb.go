@@ -23,6 +23,7 @@ type GrpcClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	LoginWithCookies(ctx context.Context, in *LoginWithCookiesRequest, opts ...grpc.CallOption) (*Empty, error)
 	FetchGroupInfo(ctx context.Context, in *FetchGroupInfoRequest, opts ...grpc.CallOption) (*FacebookGroup, error)
+	FetchUserInfo(ctx context.Context, in *FetchUserInfoRequest, opts ...grpc.CallOption) (*FacebookUser, error)
 	FetchGroupFeed(ctx context.Context, in *FetchGroupFeedRequest, opts ...grpc.CallOption) (*FacebookPostList, error)
 	FetchPost(ctx context.Context, in *FetchPostRequest, opts ...grpc.CallOption) (*FacebookPost, error)
 	FetchContentImages(ctx context.Context, in *FetchContentImagesRequest, opts ...grpc.CallOption) (*FacebookImageList, error)
@@ -82,6 +83,15 @@ func (c *grpcClient) FetchGroupInfo(ctx context.Context, in *FetchGroupInfoReque
 	return out, nil
 }
 
+func (c *grpcClient) FetchUserInfo(ctx context.Context, in *FetchUserInfoRequest, opts ...grpc.CallOption) (*FacebookUser, error) {
+	out := new(FacebookUser)
+	err := c.cc.Invoke(ctx, "/fbcrawl_colly.Grpc/FetchUserInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *grpcClient) FetchGroupFeed(ctx context.Context, in *FetchGroupFeedRequest, opts ...grpc.CallOption) (*FacebookPostList, error) {
 	out := new(FacebookPostList)
 	err := c.cc.Invoke(ctx, "/fbcrawl_colly.Grpc/FetchGroupFeed", in, out, opts...)
@@ -128,6 +138,7 @@ type GrpcServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	LoginWithCookies(context.Context, *LoginWithCookiesRequest) (*Empty, error)
 	FetchGroupInfo(context.Context, *FetchGroupInfoRequest) (*FacebookGroup, error)
+	FetchUserInfo(context.Context, *FetchUserInfoRequest) (*FacebookUser, error)
 	FetchGroupFeed(context.Context, *FetchGroupFeedRequest) (*FacebookPostList, error)
 	FetchPost(context.Context, *FetchPostRequest) (*FacebookPost, error)
 	FetchContentImages(context.Context, *FetchContentImagesRequest) (*FacebookImageList, error)
@@ -153,6 +164,9 @@ func (*UnimplementedGrpcServer) LoginWithCookies(context.Context, *LoginWithCook
 }
 func (*UnimplementedGrpcServer) FetchGroupInfo(context.Context, *FetchGroupInfoRequest) (*FacebookGroup, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchGroupInfo not implemented")
+}
+func (*UnimplementedGrpcServer) FetchUserInfo(context.Context, *FetchUserInfoRequest) (*FacebookUser, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchUserInfo not implemented")
 }
 func (*UnimplementedGrpcServer) FetchGroupFeed(context.Context, *FetchGroupFeedRequest) (*FacebookPostList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchGroupFeed not implemented")
@@ -262,6 +276,24 @@ func _Grpc_FetchGroupInfo_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Grpc_FetchUserInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchUserInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcServer).FetchUserInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fbcrawl_colly.Grpc/FetchUserInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcServer).FetchUserInfo(ctx, req.(*FetchUserInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Grpc_FetchGroupFeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FetchGroupFeedRequest)
 	if err := dec(in); err != nil {
@@ -357,6 +389,10 @@ var _Grpc_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FetchGroupInfo",
 			Handler:    _Grpc_FetchGroupInfo_Handler,
+		},
+		{
+			MethodName: "FetchUserInfo",
+			Handler:    _Grpc_FetchUserInfo_Handler,
 		},
 		{
 			MethodName: "FetchGroupFeed",

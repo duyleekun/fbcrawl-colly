@@ -20,6 +20,7 @@ module FbcrawlColly
       rpc :Login, FbcrawlColly::LoginRequest, FbcrawlColly::LoginResponse
       rpc :LoginWithCookies, FbcrawlColly::LoginWithCookiesRequest, FbcrawlColly::Empty
       rpc :FetchGroupInfo, FbcrawlColly::FetchGroupInfoRequest, FbcrawlColly::FacebookGroup
+      rpc :FetchUserInfo, FbcrawlColly::FetchUserInfoRequest, FbcrawlColly::FacebookUser
       rpc :FetchGroupFeed, FbcrawlColly::FetchGroupFeedRequest, FbcrawlColly::FacebookPostList
       rpc :FetchPost, FbcrawlColly::FetchPostRequest, FbcrawlColly::FacebookPost
       rpc :FetchContentImages, FbcrawlColly::FetchContentImagesRequest, FbcrawlColly::FacebookImageList

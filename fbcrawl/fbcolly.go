@@ -205,7 +205,7 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (error, *pb.F
 	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
 		result.NextCursor = "http://mbasic.facebook.com" + element.Attr("href")
 	})
-	collector.OnHTML("div[role=\"article\"]", func(element *colly.HTMLElement) {
+	collector.OnHTML("#m_group_stories_container div[role=\"article\"]", func(element *colly.HTMLElement) {
 		dataElement := element
 		post := &pb.FacebookPost{}
 		var fbDataFt FbDataFt
@@ -263,6 +263,33 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (error, *pb.F
 		logger.Error("crawl by colly err:", err)
 	}
 	return err, &result
+}
+
+func (f *Fbcolly) FetchUserInfo(userIdOrUsername string) (error, *pb.FacebookUser) {
+	collector := f.collector.Clone()
+	err := setupSharedCollector(collector)
+
+	result := &pb.FacebookUser{}
+
+	collector.OnHTML("a[href*=\"lst=\"]", func(element *colly.HTMLElement) {
+		parsed, _ := url.Parse(element.Attr("href"))
+		result.Username = strings.Split(parsed.Path[1:], "/")[0]
+		result.Id = getUserIdFromCommentHref(parsed.Query().Get("lst"))
+	})
+
+	collector.OnHTML("a[href*=\"/friends\"]", func(element *colly.HTMLElement) {
+		result.FriendCount = getNumberFromText(element.Text)
+	})
+
+	collector.OnHTML("#objects_container", func(element *colly.HTMLElement) {
+		result.Name = element.DOM.Find("strong").First().Text()
+	})
+
+	err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/%s", userIdOrUsername))
+	if err != nil {
+		logger.Error("crawl by colly err:", err)
+	}
+	return err, result
 }
 
 func (f *Fbcolly) FetchGroupInfo(groupIdOrUsername string) (error, *pb.FacebookGroup) {
@@ -385,12 +412,13 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 				commentId, _ := strconv.ParseInt(selection.AttrOr("id", ""), 10, 64)
 				logger.Info("comment", commentId)
 				createdAtWhenResult, _ := f.w.Parse(selection.Find("abbr").Text(), time.Now())
+				parsed, _ := url.Parse(selection.Find("h3 > a").AttrOr("href", ""))
 				post.Comments.Comments = append(post.Comments.Comments, &pb.FacebookComment{
 					Id:   commentId,
 					Post: &pb.FacebookPost{Id: post.Id},
 					User: &pb.FacebookUser{
-						Id:   getUserIdFromCommentHref(selection.Find("a[href*=\"#comment_form_\"]").AttrOr("href", "")),
-						Name: selection.Find("h3 > a").Text(),
+						Username: parsed.Path[1:],
+						Name:     selection.Find("h3 > a").Text(),
 					},
 					Content:   selection.Find("h3 + div").Text(),
 					CreatedAt: createdAtWhenResult.Time.Unix(),
@@ -422,7 +450,7 @@ func (f *Fbcolly) LoginWithCookies(cookies string) error {
 //}
 
 func getUserIdFromCommentHref(href string) int64 {
-	match := regexp.MustCompile("#comment_form_(\\d+)").FindStringSubmatch(href)
+	match := regexp.MustCompile("\\d+:(\\d+)\\d+").FindStringSubmatch(href)
 	if len(match) > 0 {
 		id, _ := strconv.ParseInt(match[1], 10, 64)
 		return id

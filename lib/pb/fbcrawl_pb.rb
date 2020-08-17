@@ -27,6 +27,10 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
       optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
       optional :group_username, :string, 2
     end
+    add_message "fbcrawl_colly.FetchUserInfoRequest" do
+      optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
+      optional :username, :string, 2
+    end
     add_message "fbcrawl_colly.FetchGroupFeedRequest" do
       optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
       optional :group_id, :int64, 2
@@ -55,6 +59,8 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
     add_message "fbcrawl_colly.FacebookUser" do
       optional :id, :int64, 1
       optional :name, :string, 2
+      optional :username, :string, 3
+      optional :friend_count, :int64, 4
     end
     add_message "fbcrawl_colly.FacebookPost" do
       optional :id, :int64, 1
@@ -102,6 +108,7 @@ module FbcrawlColly
   LoginResponse = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginResponse").msgclass
   LoginWithCookiesRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginWithCookiesRequest").msgclass
   FetchGroupInfoRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchGroupInfoRequest").msgclass
+  FetchUserInfoRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchUserInfoRequest").msgclass
   FetchGroupFeedRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchGroupFeedRequest").msgclass
   FetchPostRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchPostRequest").msgclass
   FetchContentImagesRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchContentImagesRequest").msgclass

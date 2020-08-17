@@ -73,6 +73,12 @@ func (s server) FetchGroupInfo(ctx context.Context, request *pb.FetchGroupInfoRe
 	return groupInfo, err
 }
 
+func (s server) FetchUserInfo(ctx context.Context, request *pb.FetchUserInfoRequest) (*pb.FacebookUser, error) {
+	p := getColly(request.Pointer)
+	err, userInfo := p.FetchUserInfo(request.Username)
+	return userInfo, err
+}
+
 func (s server) FetchGroupFeed(ctx context.Context, request *pb.FetchGroupFeedRequest) (*pb.FacebookPostList, error) {
 	p := getColly(request.Pointer)
 	err, postsList := p.FetchGroupFeed(request.GroupId, request.NextCursor)

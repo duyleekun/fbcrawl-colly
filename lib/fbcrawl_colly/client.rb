@@ -19,6 +19,10 @@ module FbcrawlColly
       s = @client.login_with_cookies(FbcrawlColly::LoginWithCookiesRequest.new(pointer: @colly, cookies: cookies))
     end
 
+    def fetch_user_info(username)
+      s = @client.fetch_user_info(FbcrawlColly::FetchUserInfoRequest.new(pointer: @colly, username: username))
+    end
+
     def fetch_group_info(group_id_or_username)
       s = @client.fetch_group_info(FbcrawlColly::FetchGroupInfoRequest.new(pointer: @colly, group_username: group_id_or_username))
     end
