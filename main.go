@@ -23,7 +23,7 @@ var password = flag.String("password", "change_me", "facebook password")
 var otp = flag.String("otp", "123456", "facebook otp")
 var groupId = flag.String("groupId", "334294967318328", "facebook group id, default is 334294967318328")
 
-var allInstances, _ = lru.New(20)
+var allInstances, _ = lru.New(1000)
 
 func getColly(pointer *pb.Pointer) *fbcolly.Fbcolly {
 	c, ok := allInstances.Get(pointer.Address)
