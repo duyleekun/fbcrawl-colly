@@ -408,35 +408,33 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 			element.DOM.Find("h3 + div + div + div").Parent().Parent().Each(func(i int, selection *goquery.Selection) {
 				//author
 				commentId, _ := strconv.ParseInt(selection.AttrOr("id", ""), 10, 64)
-				logger.Infof("groupId %d", groupId)
-				logger.Infof("postId %d", postId)
-				logger.Info("commentId", commentId)
-				logger.Info("createdAtWhenResult", selection.Find("abbr").Text())
-				createdAtWhenResult, err := f.w.Parse(selection.Find("abbr").Text(), time.Now())
-				if err != nil {
-					logger.Error(err)
-					return
-				}
-				parsed, err := url.Parse(selection.Find("h3 > a").AttrOr("href", ""))
-				if err != nil {
-					logger.Error(err)
-					return
-				}
-				if len(parsed.Path) == 0 {
-					logger.Error("Empty path for commentId ", commentId)
-					return
-				}
-				if len(parsed.Path) > 1 {
-					post.Comments.Comments = append(post.Comments.Comments, &pb.FacebookComment{
-						Id:   commentId,
-						Post: &pb.FacebookPost{Id: post.Id},
-						User: &pb.FacebookUser{
-							Username: parsed.Path[1:],
-							Name:     selection.Find("h3 > a").Text(),
-						},
-						Content:   selection.Find("h3 + div").Text(),
-						CreatedAt: createdAtWhenResult.Time.Unix(),
-					})
+				if commentId > 0 {
+					createdAtWhenResult, err := f.w.Parse(selection.Find("abbr").Text(), time.Now())
+					if err != nil {
+						logger.Error(err)
+						return
+					}
+					parsed, err := url.Parse(selection.Find("h3 > a").AttrOr("href", ""))
+					if err != nil {
+						logger.Error(err)
+						return
+					}
+					if len(parsed.Path) == 0 {
+						logger.Error("Empty path for commentId ", commentId)
+						return
+					}
+					if len(parsed.Path) > 1 {
+						post.Comments.Comments = append(post.Comments.Comments, &pb.FacebookComment{
+							Id:   commentId,
+							Post: &pb.FacebookPost{Id: post.Id},
+							User: &pb.FacebookUser{
+								Username: parsed.Path[1:],
+								Name:     selection.Find("h3 > a").Text(),
+							},
+							Content:   selection.Find("h3 + div").Text(),
+							CreatedAt: createdAtWhenResult.Time.Unix(),
+						})
+					}
 				}
 			})
 
