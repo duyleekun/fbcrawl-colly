@@ -408,7 +408,10 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 			element.DOM.Find("h3 + div + div + div").Parent().Parent().Each(func(i int, selection *goquery.Selection) {
 				//author
 				commentId, _ := strconv.ParseInt(selection.AttrOr("id", ""), 10, 64)
-				logger.Info("comment", commentId)
+				logger.Infof("groupId %d", groupId)
+				logger.Infof("postId %d", postId)
+				logger.Info("commentId", commentId)
+				logger.Info("createdAtWhenResult", selection.Find("abbr").Text())
 				createdAtWhenResult, err := f.w.Parse(selection.Find("abbr").Text(), time.Now())
 				if err != nil {
 					logger.Error(err)
