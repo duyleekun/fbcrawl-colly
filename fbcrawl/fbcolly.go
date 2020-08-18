@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly/v2"
-	"github.com/gocolly/colly/v2/debug"
 	"github.com/gocolly/colly/v2/extensions"
 	"github.com/gocolly/colly/v2/storage"
 	"github.com/google/logger"
@@ -67,7 +66,6 @@ func setupSharedCollector(collector *colly.Collector) error {
 	collector.AllowURLRevisit = true
 	collector.OnRequest(sharedOnRequest)
 	collector.OnResponse(sharedOnResponse)
-	collector.SetDebugger(&debug.LogDebugger{})
 	collector.OnError(func(resp *colly.Response, errHttp error) {
 		err = errHttp
 		logger.Error("OnError", err)
@@ -413,16 +411,18 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 				logger.Info("comment", commentId)
 				createdAtWhenResult, _ := f.w.Parse(selection.Find("abbr").Text(), time.Now())
 				parsed, _ := url.Parse(selection.Find("h3 > a").AttrOr("href", ""))
-				post.Comments.Comments = append(post.Comments.Comments, &pb.FacebookComment{
-					Id:   commentId,
-					Post: &pb.FacebookPost{Id: post.Id},
-					User: &pb.FacebookUser{
-						Username: parsed.Path[1:],
-						Name:     selection.Find("h3 > a").Text(),
-					},
-					Content:   selection.Find("h3 + div").Text(),
-					CreatedAt: createdAtWhenResult.Time.Unix(),
-				})
+				if len(parsed.Path) > 1 {
+					post.Comments.Comments = append(post.Comments.Comments, &pb.FacebookComment{
+						Id:   commentId,
+						Post: &pb.FacebookPost{Id: post.Id},
+						User: &pb.FacebookUser{
+							Username: parsed.Path[1:],
+							Name:     selection.Find("h3 > a").Text(),
+						},
+						Content:   selection.Find("h3 + div").Text(),
+						CreatedAt: createdAtWhenResult.Time.Unix(),
+					})
+				}
 			})
 
 		}
