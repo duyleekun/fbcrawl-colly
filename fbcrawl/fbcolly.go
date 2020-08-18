@@ -409,8 +409,20 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 				//author
 				commentId, _ := strconv.ParseInt(selection.AttrOr("id", ""), 10, 64)
 				logger.Info("comment", commentId)
-				createdAtWhenResult, _ := f.w.Parse(selection.Find("abbr").Text(), time.Now())
-				parsed, _ := url.Parse(selection.Find("h3 > a").AttrOr("href", ""))
+				createdAtWhenResult, err := f.w.Parse(selection.Find("abbr").Text(), time.Now())
+				if err != nil {
+					logger.Error(err)
+					return
+				}
+				parsed, err := url.Parse(selection.Find("h3 > a").AttrOr("href", ""))
+				if err != nil {
+					logger.Error(err)
+					return
+				}
+				if len(parsed.Path) == 0 {
+					logger.Error("Empty path for commentId ", commentId)
+					return
+				}
 				if len(parsed.Path) > 1 {
 					post.Comments.Comments = append(post.Comments.Comments, &pb.FacebookComment{
 						Id:   commentId,
@@ -470,7 +482,7 @@ func getImageIdFromHref(href string) int64 {
 }
 
 func getNumberFromText(text string) int64 {
-	logger.Error("reaction", text)
+	logger.Info("getNumberFromText ", text)
 	if len(text) > 0 {
 		match := regexp.MustCompile("(\\d+)\\s?([km]?)").FindStringSubmatch(text)
 		if len(match) > 0 {
