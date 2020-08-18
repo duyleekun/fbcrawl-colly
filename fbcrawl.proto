@@ -86,7 +86,7 @@ message FacebookUser {
   int64 id = 1;
   string name = 2;
   string username = 3;
-  int64 friend_count =4;
+  int64 friend_count = 4;
 }
 
 message FacebookPost {
