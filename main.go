@@ -7,6 +7,7 @@ import (
 	"github.com/google/logger"
 	lru "github.com/hashicorp/golang-lru"
 	"google.golang.org/grpc"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -104,6 +105,8 @@ func (s server) FetchImageUrl(ctx context.Context, request *pb.FetchImageUrlRequ
 }
 
 func main() {
+	logger.Init("fb-colly", true, false, ioutil.Discard)
+
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
 		port = "50051"
