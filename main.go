@@ -5,7 +5,6 @@ import (
 	context "context"
 	"flag"
 	"github.com/google/logger"
-	lru "github.com/hashicorp/golang-lru"
 	"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
@@ -13,7 +12,6 @@ import (
 	"os"
 	"qnetwork.net/fbcrawl/fbcrawl"
 	"qnetwork.net/fbcrawl/fbcrawl/pb"
-	"unsafe"
 )
 
 const logPath = "parse.log"
@@ -24,14 +22,13 @@ var password = flag.String("password", "change_me", "facebook password")
 var otp = flag.String("otp", "123456", "facebook otp")
 var groupId = flag.String("groupId", "334294967318328", "facebook group id, default is 334294967318328")
 
-var allInstances, _ = lru.New(1000)
-
-func getColly(pointer *pb.Pointer) *fbcolly.Fbcolly {
-	c, ok := allInstances.Get(pointer.Address)
-	if ok {
-		return c.(*fbcolly.Fbcolly)
+func getColly(context *pb.Context) *fbcolly.Fbcolly {
+	instance := fbcolly.New()
+	if context != nil && len(context.Cookies) > 0 {
+		_ = instance.LoginWithCookies(context.Cookies)
 	}
-	return nil
+
+	return instance
 }
 
 // server is used to implement helloworld.GreeterServer.
@@ -39,21 +36,8 @@ type server struct {
 	pb.GrpcServer
 }
 
-func (s server) Init(ctx context.Context, empty *pb.Empty) (*pb.Pointer, error) {
-	instance := fbcolly.New()
-	ptr := (uintptr)(unsafe.Pointer(instance))
-	allInstances.Add(int64(ptr), instance)
-	return &pb.Pointer{Address: int64(ptr)}, nil
-}
-
-func (s server) FreeColly(ctx context.Context, pointer *pb.Pointer) (*pb.Empty, error) {
-	logger.Info("FreeColly")
-	allInstances.Remove(pointer.Address)
-	return &pb.Empty{}, nil
-}
-
 func (s server) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
-	p := getColly(request.Pointer)
+	p := getColly(nil)
 
 	cookies, err := p.Login(request.Email, request.Password, request.TotpSecret)
 	if err == nil {
@@ -62,44 +46,38 @@ func (s server) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginR
 	return nil, err
 }
 
-func (s server) LoginWithCookies(ctx context.Context, request *pb.LoginWithCookiesRequest) (*pb.Empty, error) {
-	p := getColly(request.Pointer)
-	err := p.LoginWithCookies(request.Cookies)
-	return &pb.Empty{}, err
-}
-
 func (s server) FetchGroupInfo(ctx context.Context, request *pb.FetchGroupInfoRequest) (*pb.FacebookGroup, error) {
-	p := getColly(request.Pointer)
+	p := getColly(request.Context)
 	err, groupInfo := p.FetchGroupInfo(request.GroupUsername)
 	return groupInfo, err
 }
 
 func (s server) FetchUserInfo(ctx context.Context, request *pb.FetchUserInfoRequest) (*pb.FacebookUser, error) {
-	p := getColly(request.Pointer)
+	p := getColly(request.Context)
 	err, userInfo := p.FetchUserInfo(request.Username)
 	return userInfo, err
 }
 
 func (s server) FetchGroupFeed(ctx context.Context, request *pb.FetchGroupFeedRequest) (*pb.FacebookPostList, error) {
-	p := getColly(request.Pointer)
+	p := getColly(request.Context)
 	err, postsList := p.FetchGroupFeed(request.GroupId, request.NextCursor)
 	return postsList, err
 }
 
 func (s server) FetchPost(ctx context.Context, request *pb.FetchPostRequest) (*pb.FacebookPost, error) {
-	p := getColly(request.Pointer)
+	p := getColly(request.Context)
 	err, post := p.FetchPost(request.GroupId, request.PostId, request.CommentNextCursor)
 	return post, err
 }
 
 func (s server) FetchContentImages(ctx context.Context, request *pb.FetchContentImagesRequest) (*pb.FacebookImageList, error) {
-	p := getColly(request.Pointer)
+	p := getColly(request.Context)
 	err, imageList := p.FetchContentImages(request.PostId, request.NextCursor)
 	return imageList, err
 }
 
 func (s server) FetchImageUrl(ctx context.Context, request *pb.FetchImageUrlRequest) (*pb.FacebookImage, error) {
-	p := getColly(request.Pointer)
+	p := getColly(request.Context)
 	err, image := p.FetchImageUrl(request.ImageId)
 	return image, err
 }

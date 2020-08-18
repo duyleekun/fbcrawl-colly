@@ -18,10 +18,7 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GrpcClient interface {
 	// Sends a greeting
-	Init(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Pointer, error)
-	FreeColly(ctx context.Context, in *Pointer, opts ...grpc.CallOption) (*Empty, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
-	LoginWithCookies(ctx context.Context, in *LoginWithCookiesRequest, opts ...grpc.CallOption) (*Empty, error)
 	FetchGroupInfo(ctx context.Context, in *FetchGroupInfoRequest, opts ...grpc.CallOption) (*FacebookGroup, error)
 	FetchUserInfo(ctx context.Context, in *FetchUserInfoRequest, opts ...grpc.CallOption) (*FacebookUser, error)
 	FetchGroupFeed(ctx context.Context, in *FetchGroupFeedRequest, opts ...grpc.CallOption) (*FacebookPostList, error)
@@ -38,36 +35,9 @@ func NewGrpcClient(cc grpc.ClientConnInterface) GrpcClient {
 	return &grpcClient{cc}
 }
 
-func (c *grpcClient) Init(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Pointer, error) {
-	out := new(Pointer)
-	err := c.cc.Invoke(ctx, "/fbcrawl_colly.Grpc/Init", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *grpcClient) FreeColly(ctx context.Context, in *Pointer, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/fbcrawl_colly.Grpc/FreeColly", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *grpcClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	out := new(LoginResponse)
 	err := c.cc.Invoke(ctx, "/fbcrawl_colly.Grpc/Login", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *grpcClient) LoginWithCookies(ctx context.Context, in *LoginWithCookiesRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/fbcrawl_colly.Grpc/LoginWithCookies", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -133,10 +103,7 @@ func (c *grpcClient) FetchImageUrl(ctx context.Context, in *FetchImageUrlRequest
 // for forward compatibility
 type GrpcServer interface {
 	// Sends a greeting
-	Init(context.Context, *Empty) (*Pointer, error)
-	FreeColly(context.Context, *Pointer) (*Empty, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
-	LoginWithCookies(context.Context, *LoginWithCookiesRequest) (*Empty, error)
 	FetchGroupInfo(context.Context, *FetchGroupInfoRequest) (*FacebookGroup, error)
 	FetchUserInfo(context.Context, *FetchUserInfoRequest) (*FacebookUser, error)
 	FetchGroupFeed(context.Context, *FetchGroupFeedRequest) (*FacebookPostList, error)
@@ -150,17 +117,8 @@ type GrpcServer interface {
 type UnimplementedGrpcServer struct {
 }
 
-func (*UnimplementedGrpcServer) Init(context.Context, *Empty) (*Pointer, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Init not implemented")
-}
-func (*UnimplementedGrpcServer) FreeColly(context.Context, *Pointer) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FreeColly not implemented")
-}
 func (*UnimplementedGrpcServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
-}
-func (*UnimplementedGrpcServer) LoginWithCookies(context.Context, *LoginWithCookiesRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LoginWithCookies not implemented")
 }
 func (*UnimplementedGrpcServer) FetchGroupInfo(context.Context, *FetchGroupInfoRequest) (*FacebookGroup, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchGroupInfo not implemented")
@@ -186,42 +144,6 @@ func RegisterGrpcServer(s *grpc.Server, srv GrpcServer) {
 	s.RegisterService(&_Grpc_serviceDesc, srv)
 }
 
-func _Grpc_Init_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GrpcServer).Init(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/fbcrawl_colly.Grpc/Init",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcServer).Init(ctx, req.(*Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Grpc_FreeColly_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Pointer)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GrpcServer).FreeColly(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/fbcrawl_colly.Grpc/FreeColly",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcServer).FreeColly(ctx, req.(*Pointer))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Grpc_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LoginRequest)
 	if err := dec(in); err != nil {
@@ -236,24 +158,6 @@ func _Grpc_Login_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GrpcServer).Login(ctx, req.(*LoginRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Grpc_LoginWithCookies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LoginWithCookiesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GrpcServer).LoginWithCookies(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/fbcrawl_colly.Grpc/LoginWithCookies",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcServer).LoginWithCookies(ctx, req.(*LoginWithCookiesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -371,20 +275,8 @@ var _Grpc_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*GrpcServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Init",
-			Handler:    _Grpc_Init_Handler,
-		},
-		{
-			MethodName: "FreeColly",
-			Handler:    _Grpc_FreeColly_Handler,
-		},
-		{
 			MethodName: "Login",
 			Handler:    _Grpc_Login_Handler,
-		},
-		{
-			MethodName: "LoginWithCookies",
-			Handler:    _Grpc_LoginWithCookies_Handler,
 		},
 		{
 			MethodName: "FetchGroupInfo",

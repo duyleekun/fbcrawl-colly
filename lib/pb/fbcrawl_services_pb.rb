@@ -15,10 +15,7 @@ module FbcrawlColly
       self.service_name = 'fbcrawl_colly.Grpc'
 
       # Sends a greeting
-      rpc :Init, FbcrawlColly::Empty, FbcrawlColly::Pointer
-      rpc :FreeColly, FbcrawlColly::Pointer, FbcrawlColly::Empty
       rpc :Login, FbcrawlColly::LoginRequest, FbcrawlColly::LoginResponse
-      rpc :LoginWithCookies, FbcrawlColly::LoginWithCookiesRequest, FbcrawlColly::Empty
       rpc :FetchGroupInfo, FbcrawlColly::FetchGroupInfoRequest, FbcrawlColly::FacebookGroup
       rpc :FetchUserInfo, FbcrawlColly::FetchUserInfoRequest, FbcrawlColly::FacebookUser
       rpc :FetchGroupFeed, FbcrawlColly::FetchGroupFeedRequest, FbcrawlColly::FacebookPostList

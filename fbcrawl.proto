@@ -5,10 +5,7 @@ option go_package = "./fbcrawl/pb;pb";
 
 service Grpc {
   // Sends a greeting
-  rpc Init (Empty) returns (Pointer) {}
-  rpc FreeColly (Pointer) returns (Empty) {}
   rpc Login  (LoginRequest) returns (LoginResponse) {}
-  rpc LoginWithCookies  (LoginWithCookiesRequest) returns (Empty) {}
   rpc FetchGroupInfo  (FetchGroupInfoRequest) returns (FacebookGroup) {}
   rpc FetchUserInfo  (FetchUserInfoRequest) returns (FacebookUser) {}
   rpc FetchGroupFeed  (FetchGroupFeedRequest) returns (FacebookPostList) {}
@@ -21,12 +18,11 @@ message Empty {
 
 }
 
-message Pointer {
-  int64 address = 1;
+message Context {
+  string cookies = 1;
 }
 
 message LoginRequest {
-  Pointer pointer = 1;
   string email = 2;
   string password = 3;
   string totp_secret = 4;
@@ -37,41 +33,40 @@ message LoginResponse {
 }
 
 message LoginWithCookiesRequest {
-  Pointer pointer = 1;
-  string cookies = 2;
+  string cookies = 1;
 }
 
 message FetchGroupInfoRequest {
-  Pointer pointer = 1;
+  Context context = 1;
   string group_username = 2;
 }
 
 message FetchUserInfoRequest {
-  Pointer pointer = 1;
+  Context context = 1;
   string username = 2;
 }
 
 message FetchGroupFeedRequest {
-  Pointer pointer = 1;
+  Context context = 1;
   int64 group_id = 2;
   string next_cursor = 3;
 }
 
 message FetchPostRequest {
-  Pointer pointer = 1;
+  Context context = 1;
   int64 group_id = 2;
   int64 post_id = 3;
   string comment_next_cursor = 4;
 }
 
 message FetchContentImagesRequest {
-  Pointer pointer = 1;
+  Context context = 1;
   int64 post_id = 2;
   string next_cursor = 3;
 }
 
 message FetchImageUrlRequest {
-  Pointer pointer = 1;
+  Context context = 1;
   int64 image_id = 2;
 }
 

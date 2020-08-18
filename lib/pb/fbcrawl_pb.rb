@@ -7,11 +7,10 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("fbcrawl.proto", :syntax => :proto3) do
     add_message "fbcrawl_colly.Empty" do
     end
-    add_message "fbcrawl_colly.Pointer" do
-      optional :address, :int64, 1
+    add_message "fbcrawl_colly.Context" do
+      optional :cookies, :string, 1
     end
     add_message "fbcrawl_colly.LoginRequest" do
-      optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
       optional :email, :string, 2
       optional :password, :string, 3
       optional :totp_secret, :string, 4
@@ -20,35 +19,34 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
       optional :cookies, :string, 1
     end
     add_message "fbcrawl_colly.LoginWithCookiesRequest" do
-      optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
-      optional :cookies, :string, 2
+      optional :cookies, :string, 1
     end
     add_message "fbcrawl_colly.FetchGroupInfoRequest" do
-      optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
+      optional :context, :message, 1, "fbcrawl_colly.Context"
       optional :group_username, :string, 2
     end
     add_message "fbcrawl_colly.FetchUserInfoRequest" do
-      optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
+      optional :context, :message, 1, "fbcrawl_colly.Context"
       optional :username, :string, 2
     end
     add_message "fbcrawl_colly.FetchGroupFeedRequest" do
-      optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
+      optional :context, :message, 1, "fbcrawl_colly.Context"
       optional :group_id, :int64, 2
       optional :next_cursor, :string, 3
     end
     add_message "fbcrawl_colly.FetchPostRequest" do
-      optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
+      optional :context, :message, 1, "fbcrawl_colly.Context"
       optional :group_id, :int64, 2
       optional :post_id, :int64, 3
       optional :comment_next_cursor, :string, 4
     end
     add_message "fbcrawl_colly.FetchContentImagesRequest" do
-      optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
+      optional :context, :message, 1, "fbcrawl_colly.Context"
       optional :post_id, :int64, 2
       optional :next_cursor, :string, 3
     end
     add_message "fbcrawl_colly.FetchImageUrlRequest" do
-      optional :pointer, :message, 1, "fbcrawl_colly.Pointer"
+      optional :context, :message, 1, "fbcrawl_colly.Context"
       optional :image_id, :int64, 2
     end
     add_message "fbcrawl_colly.FacebookGroup" do
@@ -103,7 +101,7 @@ end
 
 module FbcrawlColly
   Empty = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.Empty").msgclass
-  Pointer = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.Pointer").msgclass
+  Context = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.Context").msgclass
   LoginRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginRequest").msgclass
   LoginResponse = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginResponse").msgclass
   LoginWithCookiesRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginWithCookiesRequest").msgclass
