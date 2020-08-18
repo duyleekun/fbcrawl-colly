@@ -42,41 +42,43 @@ type FbDataFt struct {
 	PageInsights         map[string]FbDataInsight `json:"page_insights"`
 }
 
-func sharedOnRequest(request *colly.Request) {
-	logger.Info("OnRequest ", request.URL)
-	//request.Headers.Set("Host", "facebook.com")
-	request.Headers.Set("Accept-Language", "en-US,en;q=0.9")
-	request.Headers.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
-	request.Headers.Set("origin", "https://mbasic.facebook.com")
-
-	//logger.Info("Saved referrer is", request.Ctx.Get("_referer"))
-	request.Headers.Set("referer", "https://mbasic.facebook.com/checkpoint/?_rdr")
-	request.Headers.Set("cache-control", "max-age=0")
-	request.Headers.Set("upgrade-insecure-requests", "1")
-	//accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
-	//origin: https://mbasic.facebook.com
-	//referer: https://mbasic.facebook.com/checkpoint/?_rdr
-	request.Headers.Set("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; Moto G (4)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Mobile Safari/537.36")
-	request.ResponseCharacterEncoding = "utf-8"
-}
-
 func setupSharedCollector(collector *colly.Collector) error {
 	var err error
 	extensions.Referer(collector)
 	collector.AllowURLRevisit = true
-	collector.OnRequest(sharedOnRequest)
-	collector.OnResponse(sharedOnResponse)
+	var lastUrl string
+	collector.OnRequest(func(request *colly.Request) {
+		lastUrl = request.URL.RawPath
+		logger.Info("OnRequest ", request.URL)
+		//request.Headers.Set("Host", "facebook.com")
+		request.Headers.Set("Accept-Language", "en-US,en;q=0.9")
+		request.Headers.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
+		request.Headers.Set("origin", "https://mbasic.facebook.com")
+
+		//logger.Info("Saved referrer is", request.Ctx.Get("_referer"))
+		request.Headers.Set("referer", "https://mbasic.facebook.com/checkpoint/?_rdr")
+		request.Headers.Set("cache-control", "max-age=0")
+		request.Headers.Set("upgrade-insecure-requests", "1")
+		//accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+		//origin: https://mbasic.facebook.com
+		//referer: https://mbasic.facebook.com/checkpoint/?_rdr
+		request.Headers.Set("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; Moto G (4)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Mobile Safari/537.36")
+		request.ResponseCharacterEncoding = "utf-8"
+	})
+	collector.OnResponse(func(response *colly.Response) {
+		logger.Info("OnResponse ./last.html")
+		_ = response.Save("./last.html")
+		//logger.Info(string(resp.Body))
+	})
+
+	collector.OnHTML("a[href*=\"177066345680802\"", func(element *colly.HTMLElement) {
+		logger.Error("RateLimit reached ", lastUrl)
+	})
 	collector.OnError(func(resp *colly.Response, errHttp error) {
 		err = errHttp
 		logger.Error("OnError", err)
 	})
 	return err
-}
-
-func sharedOnResponse(response *colly.Response) {
-	logger.Info("OnResponse ./last.html")
-	_ = response.Save("./last.html")
-	//logger.Info(string(resp.Body))
 }
 
 func getForm(element *colly.HTMLElement, err error) (string, error, map[string]string) {
@@ -342,7 +344,7 @@ func (f *Fbcolly) FetchImageUrl(imageId int64) (error, *pb.FacebookImage) {
 	err := setupSharedCollector(collector)
 	result := pb.FacebookImage{Id: imageId}
 
-	collector.OnHTML("a", func(element *colly.HTMLElement) {
+	collector.OnHTML("a[href*=\"fbcdn\"]", func(element *colly.HTMLElement) {
 		result.Url = element.Attr("href")
 	})
 
