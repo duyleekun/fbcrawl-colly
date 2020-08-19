@@ -460,6 +460,25 @@ func (f *Fbcolly) LoginWithCookies(cookies string) error {
 	return collector.SetCookies("https://mbasic.facebook.com/", storage.UnstringifyCookies(cookies))
 }
 
+func (f *Fbcolly) FetchMyGroups() (error, *pb.FacebookGroupList) {
+	collector := f.collector.Clone()
+	err := setupSharedCollector(collector)
+	result := &pb.FacebookGroupList{Groups: []*pb.FacebookGroup{}}
+
+	collector.OnHTML("li table a", func(element *colly.HTMLElement) {
+		result.Groups = append(result.Groups, &pb.FacebookGroup{
+			Id:   getNumberFromText(element.Attr("href")),
+			Name: element.Text,
+		})
+	})
+
+	err = collector.Visit("https://mbasic.facebook.com/groups/?seemore")
+	if err != nil {
+		logger.Error("crawl by colly err:", err)
+	}
+	return err, result
+}
+
 //func getUsernameFromHref(href string) string {
 //	return regexp.MustCompile("/([\\d\\w.]+).*").FindStringSubmatch(href)[1]
 //}

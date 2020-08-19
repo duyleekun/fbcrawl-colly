@@ -21,6 +21,10 @@ module FbcrawlColly
       s = @client.fetch_user_info(FbcrawlColly::FetchUserInfoRequest.new(context: @context, username: username))
     end
 
+    def fetch_my_groups
+      s = @client.fetch_my_groups(FbcrawlColly::FetchMyGroupsRequest.new(context: @context))
+    end
+
     def fetch_group_info(group_id_or_username)
       s = @client.fetch_group_info(FbcrawlColly::FetchGroupInfoRequest.new(context: @context, group_username: group_id_or_username))
     end

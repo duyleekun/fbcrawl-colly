@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion6
 type GrpcClient interface {
 	// Sends a greeting
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	FetchMyGroups(ctx context.Context, in *FetchMyGroupsRequest, opts ...grpc.CallOption) (*FacebookGroupList, error)
 	FetchGroupInfo(ctx context.Context, in *FetchGroupInfoRequest, opts ...grpc.CallOption) (*FacebookGroup, error)
 	FetchUserInfo(ctx context.Context, in *FetchUserInfoRequest, opts ...grpc.CallOption) (*FacebookUser, error)
 	FetchGroupFeed(ctx context.Context, in *FetchGroupFeedRequest, opts ...grpc.CallOption) (*FacebookPostList, error)
@@ -38,6 +39,15 @@ func NewGrpcClient(cc grpc.ClientConnInterface) GrpcClient {
 func (c *grpcClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	out := new(LoginResponse)
 	err := c.cc.Invoke(ctx, "/fbcrawl_colly.Grpc/Login", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcClient) FetchMyGroups(ctx context.Context, in *FetchMyGroupsRequest, opts ...grpc.CallOption) (*FacebookGroupList, error) {
+	out := new(FacebookGroupList)
+	err := c.cc.Invoke(ctx, "/fbcrawl_colly.Grpc/FetchMyGroups", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +114,7 @@ func (c *grpcClient) FetchImageUrl(ctx context.Context, in *FetchImageUrlRequest
 type GrpcServer interface {
 	// Sends a greeting
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	FetchMyGroups(context.Context, *FetchMyGroupsRequest) (*FacebookGroupList, error)
 	FetchGroupInfo(context.Context, *FetchGroupInfoRequest) (*FacebookGroup, error)
 	FetchUserInfo(context.Context, *FetchUserInfoRequest) (*FacebookUser, error)
 	FetchGroupFeed(context.Context, *FetchGroupFeedRequest) (*FacebookPostList, error)
@@ -119,6 +130,9 @@ type UnimplementedGrpcServer struct {
 
 func (*UnimplementedGrpcServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
+}
+func (*UnimplementedGrpcServer) FetchMyGroups(context.Context, *FetchMyGroupsRequest) (*FacebookGroupList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchMyGroups not implemented")
 }
 func (*UnimplementedGrpcServer) FetchGroupInfo(context.Context, *FetchGroupInfoRequest) (*FacebookGroup, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchGroupInfo not implemented")
@@ -158,6 +172,24 @@ func _Grpc_Login_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GrpcServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Grpc_FetchMyGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchMyGroupsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcServer).FetchMyGroups(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fbcrawl_colly.Grpc/FetchMyGroups",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcServer).FetchMyGroups(ctx, req.(*FetchMyGroupsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -277,6 +309,10 @@ var _Grpc_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Login",
 			Handler:    _Grpc_Login_Handler,
+		},
+		{
+			MethodName: "FetchMyGroups",
+			Handler:    _Grpc_FetchMyGroups_Handler,
 		},
 		{
 			MethodName: "FetchGroupInfo",

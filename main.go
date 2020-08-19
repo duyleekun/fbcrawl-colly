@@ -46,6 +46,12 @@ func (s server) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginR
 	return nil, err
 }
 
+func (s server) FetchMyGroups(ctx context.Context, request *pb.FetchMyGroupsRequest) (*pb.FacebookGroupList, error) {
+	p := getColly(request.Context)
+	err, groupInfo := p.FetchMyGroups()
+	return groupInfo, err
+}
+
 func (s server) FetchGroupInfo(ctx context.Context, request *pb.FetchGroupInfoRequest) (*pb.FacebookGroup, error) {
 	p := getColly(request.Context)
 	err, groupInfo := p.FetchGroupInfo(request.GroupUsername)

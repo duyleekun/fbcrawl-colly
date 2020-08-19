@@ -5,8 +5,6 @@ require 'google/protobuf'
 
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("fbcrawl.proto", :syntax => :proto3) do
-    add_message "fbcrawl_colly.Empty" do
-    end
     add_message "fbcrawl_colly.Context" do
       optional :cookies, :string, 1
     end
@@ -20,6 +18,9 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
     end
     add_message "fbcrawl_colly.LoginWithCookiesRequest" do
       optional :cookies, :string, 1
+    end
+    add_message "fbcrawl_colly.FetchMyGroupsRequest" do
+      optional :context, :message, 1, "fbcrawl_colly.Context"
     end
     add_message "fbcrawl_colly.FetchGroupInfoRequest" do
       optional :context, :message, 1, "fbcrawl_colly.Context"
@@ -48,6 +49,9 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
     add_message "fbcrawl_colly.FetchImageUrlRequest" do
       optional :context, :message, 1, "fbcrawl_colly.Context"
       optional :image_id, :int64, 2
+    end
+    add_message "fbcrawl_colly.FacebookGroupList" do
+      repeated :groups, :message, 1, "fbcrawl_colly.FacebookGroup"
     end
     add_message "fbcrawl_colly.FacebookGroup" do
       optional :id, :int64, 1
@@ -100,17 +104,18 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
 end
 
 module FbcrawlColly
-  Empty = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.Empty").msgclass
   Context = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.Context").msgclass
   LoginRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginRequest").msgclass
   LoginResponse = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginResponse").msgclass
   LoginWithCookiesRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.LoginWithCookiesRequest").msgclass
+  FetchMyGroupsRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchMyGroupsRequest").msgclass
   FetchGroupInfoRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchGroupInfoRequest").msgclass
   FetchUserInfoRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchUserInfoRequest").msgclass
   FetchGroupFeedRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchGroupFeedRequest").msgclass
   FetchPostRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchPostRequest").msgclass
   FetchContentImagesRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchContentImagesRequest").msgclass
   FetchImageUrlRequest = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FetchImageUrlRequest").msgclass
+  FacebookGroupList = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FacebookGroupList").msgclass
   FacebookGroup = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FacebookGroup").msgclass
   FacebookUser = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FacebookUser").msgclass
   FacebookPost = ::Google::Protobuf::DescriptorPool.generated_pool.lookup("fbcrawl_colly.FacebookPost").msgclass

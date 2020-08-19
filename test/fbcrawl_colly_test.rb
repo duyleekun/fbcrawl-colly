@@ -20,6 +20,14 @@ class FbcrawlCollyTest < Minitest::Test
     assert login_cookies.size > 0
   end
 
+  def test_my_groups
+    p = new_logged_in_colly.fetch_my_groups
+    p.groups.each do |g|
+      assert g.id > 0
+      assert g.name
+    end
+  end
+
   def test_group_info
     p = new_logged_in_colly.fetch_group_info "fbcolly"
     assert p.name.size > 0

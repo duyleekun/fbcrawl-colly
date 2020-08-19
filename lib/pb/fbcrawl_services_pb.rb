@@ -16,6 +16,7 @@ module FbcrawlColly
 
       # Sends a greeting
       rpc :Login, FbcrawlColly::LoginRequest, FbcrawlColly::LoginResponse
+      rpc :FetchMyGroups, FbcrawlColly::FetchMyGroupsRequest, FbcrawlColly::FacebookGroupList
       rpc :FetchGroupInfo, FbcrawlColly::FetchGroupInfoRequest, FbcrawlColly::FacebookGroup
       rpc :FetchUserInfo, FbcrawlColly::FetchUserInfoRequest, FbcrawlColly::FacebookUser
       rpc :FetchGroupFeed, FbcrawlColly::FetchGroupFeedRequest, FbcrawlColly::FacebookPostList

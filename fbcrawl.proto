@@ -6,16 +6,13 @@ option go_package = "./fbcrawl/pb;pb";
 service Grpc {
   // Sends a greeting
   rpc Login  (LoginRequest) returns (LoginResponse) {}
+  rpc FetchMyGroups (FetchMyGroupsRequest) returns (FacebookGroupList) {}
   rpc FetchGroupInfo  (FetchGroupInfoRequest) returns (FacebookGroup) {}
   rpc FetchUserInfo  (FetchUserInfoRequest) returns (FacebookUser) {}
   rpc FetchGroupFeed  (FetchGroupFeedRequest) returns (FacebookPostList) {}
   rpc FetchPost  (FetchPostRequest) returns (FacebookPost) {}
   rpc FetchContentImages  (FetchContentImagesRequest) returns (FacebookImageList) {}
   rpc FetchImageUrl  (FetchImageUrlRequest) returns (FacebookImage) {}
-}
-
-message Empty {
-
 }
 
 message Context {
@@ -34,6 +31,10 @@ message LoginResponse {
 
 message LoginWithCookiesRequest {
   string cookies = 1;
+}
+
+message FetchMyGroupsRequest {
+  Context context = 1;
 }
 
 message FetchGroupInfoRequest {
@@ -70,7 +71,10 @@ message FetchImageUrlRequest {
   int64 image_id = 2;
 }
 
-// The request message containing the user's name.
+message FacebookGroupList {
+  repeated FacebookGroup groups = 1;
+}
+
 message FacebookGroup {
   int64 id = 1;
   string name = 2;
