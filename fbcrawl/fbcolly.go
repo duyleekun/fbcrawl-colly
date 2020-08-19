@@ -238,6 +238,10 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (error, *pb.F
 			post.Content = dataElement.DOM.Find("div[style*=\"background-image:url\"]").Text()
 		}
 
+		if len(post.Content) == 0 {
+			post.Content = dataElement.DOM.Find("div[data-ft]").Text()
+		}
+
 		post.ContentLink = getUrlFromRedirectHref(dataElement.DOM.Find("a[href*=\"https://lm.facebook.com/l.php\"]").AttrOr("href", ""))
 		post.ReactionCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"]").Text())
 		post.CommentCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"] ~ a").Text())
@@ -390,6 +394,10 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 				if len(post.Content) == 0 {
 					// TEXT WITH BACKGROUND
 					post.Content = dataElement.Find("div[style*=\"background-image:url\"]").Text()
+				}
+
+				if len(post.Content) == 0 {
+					post.Content = dataElement.Find("div[data-ft]").Text()
 				}
 
 				post.ContentLink = getUrlFromRedirectHref(dataElement.Find("a[href*=\"https://lm.facebook.com/l.php\"]").AttrOr("href", ""))

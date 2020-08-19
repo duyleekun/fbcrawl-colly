@@ -1,17 +1,17 @@
 PATH
   remote: .
   specs:
-    fbcrawl-colly (1.1.0)
+    fbcrawl-colly (1.1.1)
       google-protobuf
       grpc
 
 GEM
   remote: https://rubygems.org/
   specs:
-    google-protobuf (3.13.0)
+    google-protobuf (3.13.0-universal-darwin)
     googleapis-common-protos-types (1.0.5)
       google-protobuf (~> 3.11)
-    grpc (1.31.1)
+    grpc (1.31.1-universal-darwin)
       google-protobuf (~> 3.12)
       googleapis-common-protos-types (~> 1.0)
     minitest (5.14.1)
