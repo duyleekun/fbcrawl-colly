@@ -222,8 +222,9 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (error, *pb.F
 		post.Group = &pb.FacebookGroup{Id: fbDataFt.PageId, Name: dataElement.DOM.Find("h3 strong:nth-child(2) a").Text()}
 		userId, _ := fbDataFt.ContentOwnerIdNew.Int64()
 		post.User = &pb.FacebookUser{
-			Id:   userId,
-			Name: dataElement.DOM.Find("h3 strong:nth-child(1) a").Text(),
+			Id:       userId,
+			Username: getUsernameFromHref(dataElement.DOM.Find("h3 strong:nth-child(1) a").AttrOr("href", "")),
+			Name:     dataElement.DOM.Find("h3 strong:nth-child(1) a").Text(),
 		}
 		post.CreatedAt = fbDataFt.PageInsights[strconv.FormatInt(fbDataFt.PageId, 10)].PublishTime
 		//Content
@@ -380,8 +381,9 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 				post.Group = &pb.FacebookGroup{Id: result.PageId, Name: dataElement.Find("h3 strong:last-child a").Text()}
 				userId, _ := result.ContentOwnerIdNew.Int64()
 				post.User = &pb.FacebookUser{
-					Id:   userId,
-					Name: dataElement.Find("h3 strong:first-child a").Text(),
+					Id:       userId,
+					Username: getUsernameFromHref(dataElement.Find("h3 strong:first-child a").AttrOr("href", "")),
+					Name:     dataElement.Find("h3 strong:first-child a").Text(),
 				}
 				post.CreatedAt = result.PageInsights[strconv.FormatInt(result.PageId, 10)].PublishTime
 				//Content
@@ -438,7 +440,7 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 							Id:   commentId,
 							Post: &pb.FacebookPost{Id: post.Id},
 							User: &pb.FacebookUser{
-								Username: parsed.Path[1:],
+								Username: getUsernameFromHref(selection.Find("h3 > a").AttrOr("href", "")),
 								Name:     selection.Find("h3 > a").Text(),
 							},
 							Content:   selection.Find("h3 + div").Text(),
@@ -487,10 +489,6 @@ func (f *Fbcolly) FetchMyGroups() (error, *pb.FacebookGroupList) {
 	return err, result
 }
 
-//func getUsernameFromHref(href string) string {
-//	return regexp.MustCompile("/([\\d\\w.]+).*").FindStringSubmatch(href)[1]
-//}
-
 func getUserIdFromCommentHref(href string) int64 {
 	match := regexp.MustCompile("\\d+:(\\d+)\\d+").FindStringSubmatch(href)
 	if len(match) > 0 {
@@ -527,4 +525,13 @@ func getNumberFromText(text string) int64 {
 		}
 	}
 	return 0
+}
+
+func getUsernameFromHref(href string) string {
+	parsed, _ := url.Parse(href)
+	if strings.HasPrefix(parsed.Path, "/profile.php") {
+		return parsed.Query().Get("id")
+	} else {
+		return strings.Split(parsed.Path[1:], "/")[0]
+	}
 }
