@@ -42,8 +42,8 @@ type FbDataFt struct {
 	PageInsights         map[string]FbDataInsight `json:"page_insights"`
 }
 
-func setupSharedCollector(collector *colly.Collector) error {
-	var err error
+func setupSharedCollector(collector *colly.Collector, onError func(error)) {
+
 	extensions.Referer(collector)
 	collector.AllowURLRevisit = true
 	var lastUrl string
@@ -68,17 +68,20 @@ func setupSharedCollector(collector *colly.Collector) error {
 	collector.OnResponse(func(response *colly.Response) {
 		logger.Info("OnResponse ./last.html")
 		_ = response.Save("./last.html")
-		//logger.Info(string(resp.Body))
+		//logger.Info(string(response.Body))
 	})
 
-	collector.OnHTML("a[href*=\"177066345680802\"", func(element *colly.HTMLElement) {
-		logger.Error("RateLimit reached ", lastUrl)
+	collector.OnHTML("a[href*=\"177066345680802\"]", func(element *colly.HTMLElement) {
+		logger.Error("RateLimit reached ")
+		onError(errors.New("RateLimit reached"))
 	})
-	collector.OnError(func(resp *colly.Response, errHttp error) {
-		err = errHttp
-		logger.Error("OnError", err)
+
+	// Set error handler
+	collector.OnError(func(r *colly.Response, err error) {
+		logger.Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+		onError(err)
+
 	})
-	return err
 }
 
 func getForm(element *colly.HTMLElement, err error) (string, error, map[string]string) {
@@ -109,9 +112,13 @@ func New() *Fbcolly {
 	return &f
 }
 
-func (f *Fbcolly) Login(email string, password string, totpSecret string) (string, error) {
+func (f *Fbcolly) Login(email string, password string, totpSecret string) (*pb.LoginResponse, error) {
+
 	collector := f.collector.Clone()
-	err := setupSharedCollector(collector)
+	var err error
+	setupSharedCollector(collector, func(errInner error) {
+		err = errInner
+	})
 
 	logger.Info("Login using email", email)
 	loggedIn := false
@@ -136,7 +143,7 @@ func (f *Fbcolly) Login(email string, password string, totpSecret string) (strin
 	})
 
 	collector.OnHTML("a[href=\"/login/save-device/cancel/?flow=interstitial_nux&nux_source=regular_login\"]", func(element *colly.HTMLElement) {
-		err = collector.Visit("http://mbasic.facebook.com" + element.Attr("href"))
+		_ = collector.Visit("http://mbasic.facebook.com" + element.Attr("href"))
 	})
 
 	collector.OnHTML("form[action=\"/login/checkpoint/\"]", func(element *colly.HTMLElement) {
@@ -181,25 +188,28 @@ func (f *Fbcolly) Login(email string, password string, totpSecret string) (strin
 		//We're in home
 		logger.Info("I'm IN HOME, navigate to page now")
 		loggedIn = true
+		err = nil
 	})
 
-	err = collector.Visit("https://mbasic.facebook.com/")
-	if err != nil {
-		logger.Error("crawl by colly err:", err)
-	}
+	_ = collector.Visit("https://mbasic.facebook.com/")
 
+	var cookies string
 	if loggedIn {
-		logger.Info(storage.StringifyCookies(collector.Cookies("https://mbasic.facebook.com/")))
-		return storage.StringifyCookies(collector.Cookies("https://mbasic.facebook.com/")), err
+		cookies = storage.StringifyCookies(collector.Cookies("https://mbasic.facebook.com/"))
 	} else {
-		return "", err
-	}
+		cookies = ""
+		err = errors.New(fmt.Sprintf("CAN'T LOGIN"))
 
+	}
+	return &pb.LoginResponse{Cookies: cookies}, err
 }
 
-func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (error, *pb.FacebookPostList) {
+func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (*pb.FacebookPostList, error) {
 	collector := f.collector.Clone()
-	err := setupSharedCollector(collector)
+	var err error
+	setupSharedCollector(collector, func(errInner error) {
+		err = errInner
+	})
 	result := pb.FacebookPostList{Posts: []*pb.FacebookPost{}}
 
 	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
@@ -221,58 +231,59 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (error, *pb.F
 		post.Id = fbDataFt.TopLevelPostId
 		post.Group = &pb.FacebookGroup{Id: fbDataFt.PageId, Name: dataElement.DOM.Find("h3 strong:nth-child(2) a").Text()}
 		userId, _ := fbDataFt.ContentOwnerIdNew.Int64()
-		post.User = &pb.FacebookUser{
-			Id:       userId,
-			Username: getUsernameFromHref(dataElement.DOM.Find("h3 strong:nth-child(1) a").AttrOr("href", "")),
-			Name:     dataElement.DOM.Find("h3 strong:nth-child(1) a").Text(),
-		}
-		post.CreatedAt = fbDataFt.PageInsights[strconv.FormatInt(fbDataFt.PageId, 10)].PublishTime
-		//Content
-
-		//NO BACKGROUND TEXT ONLY
-		post.Content = strings.Join(dataElement.DOM.Find("p").Map(func(i int, selection *goquery.Selection) string {
-			return selection.Text()
-		}), "\n")
-
-		if len(post.Content) == 0 {
-			// TEXT WITH BACKGROUND
-			post.Content = dataElement.DOM.Find("div[style*=\"background-image:url\"]").Text()
-		}
-
-		if len(post.Content) == 0 {
-			post.Content = dataElement.DOM.Find("div[data-ft]").Text()
-		}
-
-		post.ContentLink = getUrlFromRedirectHref(dataElement.DOM.Find("a[href*=\"https://lm.facebook.com/l.php\"]").AttrOr("href", ""))
-		post.ReactionCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"]").Text())
-		post.CommentCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"] ~ a").Text())
-		post.ContentImages = (funk.Map(fbDataFt.PhotoAttachmentsList, func(id string) *pb.FacebookImage {
-			i, _ := strconv.ParseInt(id, 10, 64)
-			return &pb.FacebookImage{
-				Id: i,
+		if userId > 0 {
+			post.User = &pb.FacebookUser{
+				Id:       userId,
+				Username: getUsernameFromHref(dataElement.DOM.Find("h3 strong:nth-child(1) a").AttrOr("href", "")),
+				Name:     dataElement.DOM.Find("h3 strong:nth-child(1) a").Text(),
 			}
-		})).([]*pb.FacebookImage)
+			post.CreatedAt = fbDataFt.PageInsights[strconv.FormatInt(fbDataFt.PageId, 10)].PublishTime
+			//Content
 
-		if fbDataFt.PhotoId > 0 {
-			post.ContentImage = &pb.FacebookImage{Id: fbDataFt.PhotoId}
+			//NO BACKGROUND TEXT ONLY
+			post.Content = strings.Join(dataElement.DOM.Find("p").Map(func(i int, selection *goquery.Selection) string {
+				return selection.Text()
+			}), "\n")
+
+			if len(post.Content) == 0 {
+				// TEXT WITH BACKGROUND
+				post.Content = dataElement.DOM.Find("div[style*=\"background-image:url\"]").Text()
+			}
+
+			if len(post.Content) == 0 {
+				post.Content = dataElement.DOM.Find("div[data-ft]").Text()
+			}
+
+			post.ContentLink = getUrlFromRedirectHref(dataElement.DOM.Find("a[href*=\"https://lm.facebook.com/l.php\"]").AttrOr("href", ""))
+			post.ReactionCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"]").Text())
+			post.CommentCount = getNumberFromText(element.DOM.Find("span[id*=\"like_\"] ~ a").Text())
+			post.ContentImages = (funk.Map(fbDataFt.PhotoAttachmentsList, func(id string) *pb.FacebookImage {
+				i, _ := strconv.ParseInt(id, 10, 64)
+				return &pb.FacebookImage{
+					Id: i,
+				}
+			})).([]*pb.FacebookImage)
+
+			if fbDataFt.PhotoId > 0 {
+				post.ContentImage = &pb.FacebookImage{Id: fbDataFt.PhotoId}
+			}
+			result.Posts = append(result.Posts, post)
 		}
-		result.Posts = append(result.Posts, post)
 	})
 	if len(nextCursor) > 0 {
-		err = collector.Visit(nextCursor)
+		_ = collector.Visit(nextCursor)
 	} else {
-		err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/groups/%d", groupId))
+		_ = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/groups/%d", groupId))
 	}
-
-	if err != nil {
-		logger.Error("crawl by colly err:", err)
-	}
-	return err, &result
+	return &result, err
 }
 
-func (f *Fbcolly) FetchUserInfo(userIdOrUsername string) (error, *pb.FacebookUser) {
+func (f *Fbcolly) FetchUserInfo(userIdOrUsername string) (*pb.FacebookUser, error) {
 	collector := f.collector.Clone()
-	err := setupSharedCollector(collector)
+	var err error
+	setupSharedCollector(collector, func(errInner error) {
+		err = errInner
+	})
 
 	result := &pb.FacebookUser{}
 
@@ -290,16 +301,16 @@ func (f *Fbcolly) FetchUserInfo(userIdOrUsername string) (error, *pb.FacebookUse
 		result.Name = element.DOM.Find("strong").First().Text()
 	})
 
-	err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/%s", userIdOrUsername))
-	if err != nil {
-		logger.Error("crawl by colly err:", err)
-	}
-	return err, result
+	_ = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/%s", userIdOrUsername))
+	return result, err
 }
 
-func (f *Fbcolly) FetchGroupInfo(groupIdOrUsername string) (error, *pb.FacebookGroup) {
+func (f *Fbcolly) FetchGroupInfo(groupIdOrUsername string) (*pb.FacebookGroup, error) {
 	collector := f.collector.Clone()
-	err := setupSharedCollector(collector)
+	var err error
+	setupSharedCollector(collector, func(errInner error) {
+		err = errInner
+	})
 	result := &pb.FacebookGroup{}
 
 	collector.OnHTML("a[href=\"#groupMenuBottom\"] h1", func(element *colly.HTMLElement) {
@@ -310,16 +321,16 @@ func (f *Fbcolly) FetchGroupInfo(groupIdOrUsername string) (error, *pb.FacebookG
 		result.MemberCount, _ = strconv.ParseInt(element.DOM.Closest("tr").Find("td:last-child").Text(), 10, 64)
 	})
 
-	err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/groups/%s?view=info", groupIdOrUsername))
-	if err != nil {
-		logger.Error("crawl by colly err:", err)
-	}
-	return err, result
+	_ = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/groups/%s?view=info", groupIdOrUsername))
+	return result, err
 }
 
-func (f *Fbcolly) FetchContentImages(postId int64, nextCursor string) (error, *pb.FacebookImageList) {
+func (f *Fbcolly) FetchContentImages(postId int64, nextCursor string) (*pb.FacebookImageList, error) {
 	collector := f.collector.Clone()
-	err := setupSharedCollector(collector)
+	var err error
+	setupSharedCollector(collector, func(errInner error) {
+		err = errInner
+	})
 	result := pb.FacebookImageList{Images: []*pb.FacebookImage{}}
 
 	collector.OnHTML("a[href*=\"/media/set/\"]", func(element *colly.HTMLElement) {
@@ -333,36 +344,35 @@ func (f *Fbcolly) FetchContentImages(postId int64, nextCursor string) (error, *p
 		//f.detailCollector.Visit(url)
 	})
 	if len(nextCursor) > 0 {
-		err = collector.Visit(nextCursor)
+		_ = collector.Visit(nextCursor)
 	} else {
-		err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/media/set/?set=pcb.%d", postId))
+		_ = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/media/set/?set=pcb.%d", postId))
 	}
-
-	if err != nil {
-		logger.Error("crawl by colly err:", err)
-	}
-	return err, &result
+	return &result, err
 }
 
-func (f *Fbcolly) FetchImageUrl(imageId int64) (error, *pb.FacebookImage) {
+func (f *Fbcolly) FetchImageUrl(imageId int64) (*pb.FacebookImage, error) {
 	collector := f.collector.Clone()
-	err := setupSharedCollector(collector)
+	var err error
+	setupSharedCollector(collector, func(errInner error) {
+		err = errInner
+	})
 	result := pb.FacebookImage{Id: imageId}
 
 	collector.OnHTML("a[href*=\"fbcdn\"]", func(element *colly.HTMLElement) {
 		result.Url = element.Attr("href")
 	})
 
-	err = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/photo/view_full_size/?fbid=%d", imageId))
-	if err != nil {
-		logger.Error("crawl by colly err:", err)
-	}
-	return err, &result
+	_ = collector.Visit(fmt.Sprintf("https://mbasic.facebook.com/photo/view_full_size/?fbid=%d", imageId))
+	return &result, err
 }
 
-func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor string) (error, *pb.FacebookPost) {
+func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor string) (*pb.FacebookPost, error) {
 	collector := f.collector.Clone()
-	err := setupSharedCollector(collector)
+	var err error
+	setupSharedCollector(collector, func(errInner error) {
+		err = errInner
+	})
 	post := &pb.FacebookPost{Comments: &pb.CommentList{Comments: []*pb.FacebookComment{}}}
 	collector.OnHTML("#m_story_permalink_view", func(element *colly.HTMLElement) {
 		dataElement := element.DOM.Find("div[data-ft]")
@@ -457,12 +467,12 @@ func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor strin
 		post.Comments.NextCursor = "http://mbasic.facebook.com" + element.Attr("href")
 	})
 	if len(commentNextCursor) > 0 {
-		err = collector.Visit(commentNextCursor)
+		_ = collector.Visit(commentNextCursor)
 	} else {
-		err = collector.Visit(fmt.Sprintf("http://mbasic.facebook.com/groups/%d?view=permalink&id=%d&_rdr", groupId, postId))
+		_ = collector.Visit(fmt.Sprintf("http://mbasic.facebook.com/groups/%d?view=permalink&id=%d&_rdr", groupId, postId))
 	}
 
-	return err, post
+	return post, err
 }
 
 func (f *Fbcolly) LoginWithCookies(cookies string) error {
@@ -470,9 +480,12 @@ func (f *Fbcolly) LoginWithCookies(cookies string) error {
 	return collector.SetCookies("https://mbasic.facebook.com/", storage.UnstringifyCookies(cookies))
 }
 
-func (f *Fbcolly) FetchMyGroups() (error, *pb.FacebookGroupList) {
+func (f *Fbcolly) FetchMyGroups() (*pb.FacebookGroupList, error) {
 	collector := f.collector.Clone()
-	err := setupSharedCollector(collector)
+	var err error
+	setupSharedCollector(collector, func(errInner error) {
+		err = errInner
+	})
 	result := &pb.FacebookGroupList{Groups: []*pb.FacebookGroup{}}
 
 	collector.OnHTML("li table a", func(element *colly.HTMLElement) {
@@ -482,11 +495,8 @@ func (f *Fbcolly) FetchMyGroups() (error, *pb.FacebookGroupList) {
 		})
 	})
 
-	err = collector.Visit("https://mbasic.facebook.com/groups/?seemore")
-	if err != nil {
-		logger.Error("crawl by colly err:", err)
-	}
-	return err, result
+	_ = collector.Visit("https://mbasic.facebook.com/groups/?seemore")
+	return result, err
 }
 
 func getUserIdFromCommentHref(href string) int64 {

@@ -38,54 +38,42 @@ type server struct {
 
 func (s server) Login(ctx context.Context, request *pb.LoginRequest) (*pb.LoginResponse, error) {
 	p := getColly(nil)
-
-	cookies, err := p.Login(request.Email, request.Password, request.TotpSecret)
-	if err == nil {
-		return &pb.LoginResponse{Cookies: cookies}, err
-	}
-	return nil, err
+	return p.Login(request.Email, request.Password, request.TotpSecret)
 }
 
 func (s server) FetchMyGroups(ctx context.Context, request *pb.FetchMyGroupsRequest) (*pb.FacebookGroupList, error) {
 	p := getColly(request.Context)
-	err, groupInfo := p.FetchMyGroups()
-	return groupInfo, err
+	return p.FetchMyGroups()
 }
 
 func (s server) FetchGroupInfo(ctx context.Context, request *pb.FetchGroupInfoRequest) (*pb.FacebookGroup, error) {
 	p := getColly(request.Context)
-	err, groupInfo := p.FetchGroupInfo(request.GroupUsername)
-	return groupInfo, err
+	return p.FetchGroupInfo(request.GroupUsername)
 }
 
 func (s server) FetchUserInfo(ctx context.Context, request *pb.FetchUserInfoRequest) (*pb.FacebookUser, error) {
 	p := getColly(request.Context)
-	err, userInfo := p.FetchUserInfo(request.Username)
-	return userInfo, err
+	return p.FetchUserInfo(request.Username)
 }
 
 func (s server) FetchGroupFeed(ctx context.Context, request *pb.FetchGroupFeedRequest) (*pb.FacebookPostList, error) {
 	p := getColly(request.Context)
-	err, postsList := p.FetchGroupFeed(request.GroupId, request.NextCursor)
-	return postsList, err
+	return p.FetchGroupFeed(request.GroupId, request.NextCursor)
 }
 
 func (s server) FetchPost(ctx context.Context, request *pb.FetchPostRequest) (*pb.FacebookPost, error) {
 	p := getColly(request.Context)
-	err, post := p.FetchPost(request.GroupId, request.PostId, request.CommentNextCursor)
-	return post, err
+	return p.FetchPost(request.GroupId, request.PostId, request.CommentNextCursor)
 }
 
 func (s server) FetchContentImages(ctx context.Context, request *pb.FetchContentImagesRequest) (*pb.FacebookImageList, error) {
 	p := getColly(request.Context)
-	err, imageList := p.FetchContentImages(request.PostId, request.NextCursor)
-	return imageList, err
+	return p.FetchContentImages(request.PostId, request.NextCursor)
 }
 
 func (s server) FetchImageUrl(ctx context.Context, request *pb.FetchImageUrlRequest) (*pb.FacebookImage, error) {
 	p := getColly(request.Context)
-	err, image := p.FetchImageUrl(request.ImageId)
-	return image, err
+	return p.FetchImageUrl(request.ImageId)
 }
 
 func main() {
