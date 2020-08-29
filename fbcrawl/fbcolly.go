@@ -232,11 +232,17 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (*pb.Facebook
 		post.Group = &pb.FacebookGroup{Id: fbDataFt.PageId, Name: dataElement.DOM.Find("h3 strong:nth-child(2) a").Text()}
 		userId, _ := fbDataFt.ContentOwnerIdNew.Int64()
 		if userId > 0 {
+			userA := dataElement.DOM.Find("h3 strong:nth-child(1) a")
 			post.User = &pb.FacebookUser{
 				Id:       userId,
-				Username: getUsernameFromHref(dataElement.DOM.Find("h3 strong:nth-child(1) a").AttrOr("href", "")),
-				Name:     dataElement.DOM.Find("h3 strong:nth-child(1) a").Text(),
+				Username: getUsernameFromHref(userA.AttrOr("href", "")),
+				Name:     userA.Text(),
 			}
+			if len(post.User.Username) == 0 {
+				logger.Error("Invalid username")
+				return
+			}
+
 			post.CreatedAt = fbDataFt.PageInsights[strconv.FormatInt(fbDataFt.PageId, 10)].PublishTime
 			//Content
 
@@ -542,6 +548,10 @@ func getUsernameFromHref(href string) string {
 	if strings.HasPrefix(parsed.Path, "/profile.php") {
 		return parsed.Query().Get("id")
 	} else {
-		return strings.Split(parsed.Path[1:], "/")[0]
+		if len(parsed.Path) > 0 {
+			return strings.Split(parsed.Path[1:], "/")[0]
+		}
+
 	}
+	return ""
 }
