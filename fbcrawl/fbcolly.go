@@ -222,9 +222,9 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (*pb.Facebook
 		jsonData := dataElement.Attr("data-ft")
 
 		logger.Info(jsonData)
-		err = json.Unmarshal([]byte(jsonData), &fbDataFt)
-		if err != nil {
-			logger.Error(err)
+		jsonErr := json.Unmarshal([]byte(jsonData), &fbDataFt)
+		if jsonErr != nil {
+			logger.Error(jsonErr)
 			return
 		}
 		logger.Info("Post ", fbDataFt)
