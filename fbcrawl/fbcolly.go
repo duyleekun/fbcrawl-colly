@@ -15,6 +15,8 @@ import (
 	"github.com/olebedev/when/rules/en"
 	"github.com/thoas/go-funk"
 	"github.com/xlzd/gotp"
+	"net"
+	"net/http"
 	"net/url"
 	"qnetwork.net/fbcrawl/fbcrawl/pb"
 	"regexp"
@@ -47,6 +49,19 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 	extensions.Referer(collector)
 	collector.AllowURLRevisit = true
 	var lastUrl string
+
+	collector.WithTransport(&http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	})
+
 	collector.OnRequest(func(request *colly.Request) {
 		lastUrl = request.URL.RawPath
 		logger.Info("OnRequest ", request.URL)
@@ -78,7 +93,7 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 
 	// Set error handler
 	collector.OnError(func(r *colly.Response, err error) {
-		logger.Error("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
+		logger.Error("Request URL:", r.Request.URL, " failed with response:", r, "\nError:", err)
 		onError(err)
 
 	})
