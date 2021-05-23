@@ -22,6 +22,8 @@ class FbcrawlCollyTest < Minitest::Test
 
   def test_my_groups
     p = new_logged_in_colly.fetch_my_groups
+    puts p.groups
+    assert p.groups.length > 10, "groups.length > 0"
     p.groups.each do |g|
       assert g.id > 0
       assert g.name
@@ -38,6 +40,7 @@ class FbcrawlCollyTest < Minitest::Test
 
   def test_group_feed
     p = new_logged_in_colly.fetch_group_feed DEFAULT_GROUP_ID
+    puts p.posts
     assert p.posts.size > 0
   end
 
