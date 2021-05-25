@@ -133,6 +133,18 @@ func (f *Fbcolly) Login(email string, password string, totpSecret string) (*pb.L
 	logger.Info("Login using email", email)
 	loggedIn := false
 	firstLogin := true
+	collector.OnHTML("form[action*=\"/basic-lite/cookie/consent\"]", func(element *colly.HTMLElement) {
+		logger.Info("OnHTML consent form")
+		loginURL, err, reqMap := getForm(element, err)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		err = collector.Post(loginURL, reqMap)
+		if err != nil {
+			logger.Error("post err:", err)
+		}
+	})
 	collector.OnHTML("#login_form", func(element *colly.HTMLElement) {
 		if firstLogin {
 			firstLogin = false
