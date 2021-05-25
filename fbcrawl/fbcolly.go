@@ -117,8 +117,7 @@ func getForm(element *colly.HTMLElement, err error) (string, error, map[string]s
 func FacebookRule() rules.Rule {
 
 	return &rules.F{
-		RegExp: regexp.MustCompile("(?i)(?:\\W|^)" +
-			"(\\d{4}) at \\d{2}:\\d{2}"),
+		RegExp: regexp.MustCompile("(20\\d{2})"),
 		Applier: func(m *rules.Match, c *rules.Context, o *rules.Options, ref time.Time) (bool, error) {
 
 			year, err := strconv.Atoi(m.Captures[0])
