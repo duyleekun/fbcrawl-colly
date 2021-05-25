@@ -3,7 +3,6 @@ package fbcolly
 import "C"
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly/v2"
@@ -11,8 +10,10 @@ import (
 	"github.com/gocolly/colly/v2/storage"
 	"github.com/google/logger"
 	"github.com/olebedev/when"
+	"github.com/olebedev/when/rules"
 	"github.com/olebedev/when/rules/common"
 	"github.com/olebedev/when/rules/en"
+	"github.com/pkg/errors"
 	"github.com/xlzd/gotp"
 	"net"
 	"net/http"
@@ -113,12 +114,30 @@ func getForm(element *colly.HTMLElement, err error) (string, error, map[string]s
 	return submitUrl, err, reqMap
 }
 
+func FacebookRule() rules.Rule {
+
+	return &rules.F{
+		RegExp: regexp.MustCompile("(?i)(?:\\W|^)" +
+			"(\\d{4}) at \\d{2}:\\d{2}"),
+		Applier: func(m *rules.Match, c *rules.Context, o *rules.Options, ref time.Time) (bool, error) {
+
+			year, err := strconv.Atoi(m.Captures[0])
+			if err != nil {
+				return false, errors.Wrap(err, "year rule")
+			}
+			c.Year = &year
+			return true, nil
+		},
+	}
+}
+
 func New() *Fbcolly {
 	f := Fbcolly{}
 	f.collector = colly.NewCollector()
 	f.w = when.New(nil)
 	f.w.Add(en.All...)
 	f.w.Add(common.All...)
+	f.w.Add(FacebookRule())
 	return &f
 }
 
