@@ -61,24 +61,25 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 	collector.OnRequest(func(request *colly.Request) {
 		lastUrl = request.URL.RawPath
 		logger.Info("OnRequest ", request.URL)
-		//request.Headers.Set("Host", "facebook.com")
-		request.Headers.Set("Accept-Language", "en-US,en;q=0.9")
-		request.Headers.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
-		request.Headers.Set("origin", "https://mbasic.facebook.com")
 
-		//logger.Info("Saved referrer is", request.Ctx.Get("_referer"))
-		request.Headers.Set("referer", "https://mbasic.facebook.com/checkpoint/?_rdr")
-		request.Headers.Set("cache-control", "max-age=0")
+		request.Headers.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
+		request.Headers.Set("accept-language", "vi,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh-TW;q=0.6,zh;q=0.5")
+		request.Headers.Set("cache-control", "no-cache")
+		request.Headers.Set("dnt", "1")
+		request.Headers.Set("pragma", "no-cache")
+		request.Headers.Set("sec-fetch-dest", "document")
+		request.Headers.Set("sec-fetch-mode", "navigate")
+		request.Headers.Set("sec-fetch-site", "none")
+		request.Headers.Set("sec-fetch-user", "?1")
 		request.Headers.Set("upgrade-insecure-requests", "1")
-		//accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
-		//origin: https://mbasic.facebook.com
-		//referer: https://mbasic.facebook.com/checkpoint/?_rdr
-		request.Headers.Set("User-Agent", "Mozilla/5.0 (Linux; Android 6.0.1; Moto G (4)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Mobile Safari/537.36")
+		request.Headers.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.109 Safari/537.36")
+
 		request.ResponseCharacterEncoding = "utf-8"
 	})
 	collector.OnResponse(func(response *colly.Response) {
-		logger.Info("OnResponse ./last.html")
-		_ = response.Save("./last.html")
+		name := strconv.FormatInt(time.Now().Unix(), 10) + ".html"
+		logger.Info("OnResponse ./" + name)
+		_ = response.Save("./" + name)
 		//logger.Info(string(response.Body))
 	})
 
@@ -255,7 +256,7 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (*pb.Facebook
 	collector.OnHTML("#m_group_stories_container > :last-child a", func(element *colly.HTMLElement) {
 		result.NextCursor = "https://mbasic.facebook.com" + element.Attr("href")
 	})
-	collector.OnHTML("#m_group_stories_container div[role=\"article\"]", func(element *colly.HTMLElement) {
+	collector.OnHTML("article", func(element *colly.HTMLElement) {
 		dataElement := element
 		post := &pb.FacebookPost{}
 		var fbDataFt FbDataFt
@@ -283,7 +284,7 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (*pb.Facebook
 				return
 			}
 
-			createdAtWhenResult, err := f.w.Parse(element.DOM.Find("div[data-ft] abbr").Text(), time.Now())
+			createdAtWhenResult, err := f.w.Parse(element.DOM.Find("abbr").Text(), time.Now())
 			if err != nil || createdAtWhenResult == nil {
 				logger.Error(err)
 				return
