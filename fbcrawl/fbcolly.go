@@ -61,8 +61,8 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 		ExpectContinueTimeout: 1 * time.Second,
 	})
 
-	if len(os.Getenv("COLLY_PROXY")) > 0 {
-		rp, err := proxy.RoundRobinProxySwitcher(os.Getenv("COLLY_PROXY"))
+	if len(os.Getenv("COLLY_PROX")) > 0 {
+		rp, err := proxy.RoundRobinProxySwitcher(os.Getenv("COLLY_PROX"))
 		if err != nil {
 			log.Fatal(err)
 		}
