@@ -7,6 +7,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly/v2"
 	"github.com/gocolly/colly/v2/extensions"
+	"github.com/gocolly/colly/v2/proxy"
 	"github.com/gocolly/colly/v2/storage"
 	"github.com/google/logger"
 	"github.com/olebedev/when"
@@ -15,9 +16,11 @@ import (
 	"github.com/olebedev/when/rules/en"
 	"github.com/pkg/errors"
 	"github.com/xlzd/gotp"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"qnetwork.net/fbcrawl/fbcrawl/pb"
 	"regexp"
 	"strconv"
@@ -57,6 +60,14 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	})
+
+	if len(os.Getenv("COLLY_PROXY")) > 0 {
+		rp, err := proxy.RoundRobinProxySwitcher(os.Getenv("COLLY_PROXY"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		collector.SetProxyFunc(rp)
+	}
 
 	collector.OnRequest(func(request *colly.Request) {
 		lastUrl = request.URL.RawPath
