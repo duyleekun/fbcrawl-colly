@@ -90,7 +90,7 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 
 	// Set error handler
 	collector.OnError(func(r *colly.Response, err error) {
-		logger.Error("Request URL:", r.Request.URL, " failed with response:", r, "\nError:", err)
+		logger.Error("Request URL:", r.Request.URL, " failed with response:", r.StatusCode, r.Headers, "\nError:", err)
 		onError(err)
 
 	})
