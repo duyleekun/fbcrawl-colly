@@ -69,7 +69,11 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 		}
 		collector.SetProxyFunc(rp)
 	}
-
+	collector.Limit(&colly.LimitRule{
+		DomainGlob:  "*facebook.*",
+		Parallelism: 1,
+		RandomDelay: 2 * time.Second,
+	})
 	collector.OnRequest(func(request *colly.Request) {
 		lastUrl = request.URL.RawPath
 		logger.Info("OnRequest ", request.URL)
