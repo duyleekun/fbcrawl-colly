@@ -50,7 +50,6 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 	var lastUrl string
 
 	collector.WithTransport(&http.Transport{
-		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
