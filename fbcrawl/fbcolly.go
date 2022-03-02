@@ -48,7 +48,7 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 
 	collector.OnRequest(func(request *colly.Request) {
 		lastUrl = request.URL.RawPath
-		logger.Info("OnRequest ", request.URL)
+		logger.Infof("OnRequest %v %v", request.URL, request.ProxyURL)
 
 		request.Headers.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
 		request.Headers.Set("accept-language", "vi,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh-TW;q=0.6,zh;q=0.5")
