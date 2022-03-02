@@ -17,8 +17,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xlzd/gotp"
 	"log"
-	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"qnetwork.net/fbcrawl/fbcrawl/pb"
@@ -29,8 +27,9 @@ import (
 )
 
 type Fbcolly struct {
-	collector *colly.Collector
-	w         *when.Parser
+	collector     *colly.Collector
+	w             *when.Parser
+	ProxyFunction *colly.ProxyFunc
 }
 type FbDataPostContext struct {
 	PublishTime int64 `json:"publish_time"`
@@ -43,12 +42,15 @@ type FbDataFt struct {
 	TopLevelPostId    int64       `json:"top_level_post_id,string"`
 }
 
-func setupSharedCollector(collector *colly.Collector, onError func(error)) {
+func setupSharedCollector(f *Fbcolly, collector *colly.Collector, onError func(error)) {
 	var lastUrl string
+	if f.ProxyFunction != nil {
+		collector.SetProxyFunc(*f.ProxyFunction)
+	}
 
 	collector.OnRequest(func(request *colly.Request) {
 		lastUrl = request.URL.RawPath
-		logger.Infof("OnRequest %v %v", request.URL, request.ProxyURL)
+		logger.Infof("OnRequest %v proxy %v", request.URL, request.ProxyURL)
 
 		request.Headers.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
 		request.Headers.Set("accept-language", "vi,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh-TW;q=0.6,zh;q=0.5")
@@ -131,22 +133,22 @@ func New() *Fbcolly {
 		if err != nil {
 			log.Fatal(err)
 		}
-		collector.SetProxyFunc(rp)
+		f.ProxyFunction = &rp
 	}
 
 	extensions.Referer(collector)
 	collector.AllowURLRevisit = true
 
-	collector.WithTransport(&http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	})
+	//collector.WithTransport(&http.Transport{
+	//	DialContext: (&net.Dialer{
+	//		Timeout:   30 * time.Second,
+	//		KeepAlive: 30 * time.Second,
+	//	}).DialContext,
+	//	MaxIdleConns:          100,
+	//	IdleConnTimeout:       90 * time.Second,
+	//	TLSHandshakeTimeout:   10 * time.Second,
+	//	ExpectContinueTimeout: 1 * time.Second,
+	//})
 
 	f.collector = collector
 
@@ -161,7 +163,7 @@ func (f *Fbcolly) Login(email string, password string, totpSecret string) (*pb.L
 
 	collector := f.collector.Clone()
 	var err error
-	setupSharedCollector(collector, func(errInner error) {
+	setupSharedCollector(f, collector, func(errInner error) {
 		err = errInner
 	})
 
@@ -264,7 +266,7 @@ func (f *Fbcolly) Login(email string, password string, totpSecret string) (*pb.L
 func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (*pb.FacebookPostList, error) {
 	collector := f.collector.Clone()
 	var err error
-	setupSharedCollector(collector, func(errInner error) {
+	setupSharedCollector(f, collector, func(errInner error) {
 		err = errInner
 	})
 	result := pb.FacebookPostList{Posts: []*pb.FacebookPost{}}
@@ -356,7 +358,7 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (*pb.Facebook
 func (f *Fbcolly) FetchUserInfo(userIdOrUsername string) (*pb.FacebookUser, error) {
 	collector := f.collector.Clone()
 	var err error
-	setupSharedCollector(collector, func(errInner error) {
+	setupSharedCollector(f, collector, func(errInner error) {
 		err = errInner
 	})
 
@@ -383,7 +385,7 @@ func (f *Fbcolly) FetchUserInfo(userIdOrUsername string) (*pb.FacebookUser, erro
 func (f *Fbcolly) FetchGroupInfo(groupIdOrUsername string) (*pb.FacebookGroup, error) {
 	collector := f.collector.Clone()
 	var err error
-	setupSharedCollector(collector, func(errInner error) {
+	setupSharedCollector(f, collector, func(errInner error) {
 		err = errInner
 	})
 	result := &pb.FacebookGroup{}
@@ -403,7 +405,7 @@ func (f *Fbcolly) FetchGroupInfo(groupIdOrUsername string) (*pb.FacebookGroup, e
 func (f *Fbcolly) FetchContentImages(postId int64, nextCursor string) (*pb.FacebookImageList, error) {
 	collector := f.collector.Clone()
 	var err error
-	setupSharedCollector(collector, func(errInner error) {
+	setupSharedCollector(f, collector, func(errInner error) {
 		err = errInner
 	})
 	result := pb.FacebookImageList{Images: []*pb.FacebookImage{}}
@@ -429,7 +431,7 @@ func (f *Fbcolly) FetchContentImages(postId int64, nextCursor string) (*pb.Faceb
 func (f *Fbcolly) FetchImageUrl(imageId int64) (*pb.FacebookImage, error) {
 	collector := f.collector.Clone()
 	var err error
-	setupSharedCollector(collector, func(errInner error) {
+	setupSharedCollector(f, collector, func(errInner error) {
 		err = errInner
 	})
 	result := pb.FacebookImage{Id: imageId}
@@ -445,7 +447,7 @@ func (f *Fbcolly) FetchImageUrl(imageId int64) (*pb.FacebookImage, error) {
 func (f *Fbcolly) FetchPost(groupId int64, postId int64, commentNextCursor string) (*pb.FacebookPost, error) {
 	collector := f.collector.Clone()
 	var err error
-	setupSharedCollector(collector, func(errInner error) {
+	setupSharedCollector(f, collector, func(errInner error) {
 		err = errInner
 	})
 	post := &pb.FacebookPost{Comments: &pb.CommentList{Comments: []*pb.FacebookComment{}}}
@@ -570,7 +572,7 @@ func (f *Fbcolly) LoginWithCookies(cookies string) error {
 func (f *Fbcolly) FetchMyGroups() (*pb.FacebookGroupList, error) {
 	collector := f.collector.Clone()
 	var err error
-	setupSharedCollector(collector, func(errInner error) {
+	setupSharedCollector(f, collector, func(errInner error) {
 		err = errInner
 	})
 	result := &pb.FacebookGroupList{Groups: []*pb.FacebookGroup{}}
