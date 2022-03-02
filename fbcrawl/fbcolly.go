@@ -99,7 +99,7 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 		//logger.Info(string(response.Body))
 	})
 
-	collector.OnHTML("a[href*=\"177066345680802\"]", func(element *colly.HTMLElement) {
+	collector.OnHTML("a[href*=\"571927962827151\"]", func(element *colly.HTMLElement) {
 		logger.Error("RateLimit reached ")
 		onError(errors.New("RateLimit reached"))
 	})
