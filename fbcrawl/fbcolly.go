@@ -72,7 +72,7 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 	collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*facebook.*",
 		Parallelism: 1,
-		RandomDelay: 2 * time.Second,
+		RandomDelay: 4 * time.Second,
 	})
 	collector.OnRequest(func(request *colly.Request) {
 		lastUrl = request.URL.RawPath
