@@ -129,6 +129,7 @@ func New() *Fbcolly {
 
 	val, found := os.LookupEnv("COLLYPROXY")
 	if found {
+		logger.Infof("Proxy list: %v", strings.Split(val, ","))
 		rp, err := proxy.RoundRobinProxySwitcher(strings.Split(val, ",")...)
 		if err != nil {
 			log.Fatal(err)
