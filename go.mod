@@ -12,6 +12,7 @@ require (
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/xlzd/gotp v0.0.0-20181030022105-c8557ba2c119
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
+	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65
 	google.golang.org/grpc v1.27.0
 	google.golang.org/protobuf v1.25.0
 )
