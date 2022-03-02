@@ -44,30 +44,8 @@ type FbDataFt struct {
 }
 
 func setupSharedCollector(collector *colly.Collector, onError func(error)) {
-
-	extensions.Referer(collector)
-	collector.AllowURLRevisit = true
 	var lastUrl string
 
-	collector.WithTransport(&http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	})
-
-	val, found := os.LookupEnv("COLLYPROXY")
-	if found {
-		rp, err := proxy.RoundRobinProxySwitcher(strings.Split(val, ",")...)
-		if err != nil {
-			log.Fatal(err)
-		}
-		collector.SetProxyFunc(rp)
-	}
 	collector.OnRequest(func(request *colly.Request) {
 		lastUrl = request.URL.RawPath
 		logger.Info("OnRequest ", request.URL)
@@ -143,7 +121,32 @@ func FacebookRule() rules.Rule {
 
 func New() *Fbcolly {
 	f := Fbcolly{}
-	f.collector = colly.NewCollector()
+	collector := colly.NewCollector()
+
+	val, found := os.LookupEnv("COLLYPROXY")
+	if found {
+		rp, err := proxy.RoundRobinProxySwitcher(strings.Split(val, ",")...)
+		if err != nil {
+			log.Fatal(err)
+		}
+		collector.SetProxyFunc(rp)
+	}
+
+	extensions.Referer(collector)
+	collector.AllowURLRevisit = true
+
+	collector.WithTransport(&http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	})
+
+	f.collector = collector
 
 	f.w = when.New(nil)
 	f.w.Add(en.All...)
