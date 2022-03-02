@@ -66,18 +66,20 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 	})
 	collector.OnResponse(func(response *colly.Response) {
 		name := strconv.FormatInt(time.Now().Unix(), 10) + ".html"
-		logger.Info("OnResponse ./" + name)
+		logger.Infof("OnResponse ./%v proxy %v", name, response.Request.ProxyURL)
 		_ = response.Save("./" + name)
 		//logger.Info(string(response.Body))
 	})
 
 	collector.OnHTML("a[href*=\"571927962827151\"]", func(element *colly.HTMLElement) {
 		logger.Error("RateLimit reached ")
+
 		onError(errors.New("RateLimit reached"))
 	})
 
 	// Set error handler
 	collector.OnError(func(r *colly.Response, err error) {
+
 		logger.Error("Request URL:", r.Request.URL, " failed with response:", r.StatusCode, r.Headers, "\nError:", err)
 		onError(err)
 
