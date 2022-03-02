@@ -63,7 +63,7 @@ func setupSharedCollector(collector *colly.Collector, onError func(error)) {
 
 	val, found := os.LookupEnv("COLLYPROXY")
 	if found {
-		rp, err := proxy.RoundRobinProxySwitcher(val)
+		rp, err := proxy.RoundRobinProxySwitcher(strings.Split(val, ",")...)
 		if err != nil {
 			log.Fatal(err)
 		}
