@@ -13,12 +13,11 @@ import (
 	"os"
 	"qnetwork.net/fbcrawl/fbcrawl"
 	"qnetwork.net/fbcrawl/fbcrawl/pb"
-	"strings"
 )
 
 const logPath = "parse.log"
 
-var limiter *rate.Limiter
+var limiter = rate.NewLimiter(1, 1)
 
 var verbose = flag.Bool("verbose", true, "print info level logs to stdout")
 var email = flag.String("email", "change_me@gmail.com", "facebook email")
@@ -90,8 +89,6 @@ func (s server) FetchImageUrl(ctx context.Context, request *pb.FetchImageUrlRequ
 
 func main() {
 	logger.Init("fb-colly", true, false, ioutil.Discard)
-	val, _ := os.LookupEnv("COLLYPROXY")
-	limiter = rate.NewLimiter(rate.Limit(len(strings.Split(val, ","))), 1)
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
