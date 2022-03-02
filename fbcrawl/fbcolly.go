@@ -7,7 +7,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly/v2"
 	"github.com/gocolly/colly/v2/extensions"
-	"github.com/gocolly/colly/v2/proxy"
 	"github.com/gocolly/colly/v2/storage"
 	"github.com/google/logger"
 	"github.com/olebedev/when"
@@ -16,9 +15,7 @@ import (
 	"github.com/olebedev/when/rules/en"
 	"github.com/pkg/errors"
 	"github.com/xlzd/gotp"
-	"log"
 	"net/url"
-	"os"
 	"qnetwork.net/fbcrawl/fbcrawl/pb"
 	"regexp"
 	"strconv"
@@ -127,29 +124,8 @@ func New() *Fbcolly {
 	f := Fbcolly{}
 	collector := colly.NewCollector()
 
-	val, found := os.LookupEnv("COLLYPROXY")
-	if found {
-		logger.Infof("Proxy list: %v", strings.Split(val, ","))
-		rp, err := proxy.RoundRobinProxySwitcher(strings.Split(val, ",")...)
-		if err != nil {
-			log.Fatal(err)
-		}
-		f.ProxyFunction = &rp
-	}
-
 	extensions.Referer(collector)
 	collector.AllowURLRevisit = true
-
-	//collector.WithTransport(&http.Transport{
-	//	DialContext: (&net.Dialer{
-	//		Timeout:   30 * time.Second,
-	//		KeepAlive: 30 * time.Second,
-	//	}).DialContext,
-	//	MaxIdleConns:          100,
-	//	IdleConnTimeout:       90 * time.Second,
-	//	TLSHandshakeTimeout:   10 * time.Second,
-	//	ExpectContinueTimeout: 1 * time.Second,
-	//})
 
 	f.collector = collector
 

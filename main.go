@@ -4,6 +4,8 @@ import "C"
 import (
 	context "context"
 	"flag"
+	"github.com/gocolly/colly/v2"
+	"github.com/gocolly/colly/v2/proxy"
 	"github.com/google/logger"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -13,12 +15,13 @@ import (
 	"os"
 	"qnetwork.net/fbcrawl/fbcrawl"
 	"qnetwork.net/fbcrawl/fbcrawl/pb"
+	"strings"
 )
 
 const logPath = "parse.log"
 
 var limiter = rate.NewLimiter(1, 1)
-
+var proxyFunction *colly.ProxyFunc
 var verbose = flag.Bool("verbose", true, "print info level logs to stdout")
 var email = flag.String("email", "change_me@gmail.com", "facebook email")
 var password = flag.String("password", "change_me", "facebook password")
@@ -27,10 +30,10 @@ var groupId = flag.String("groupId", "334294967318328", "facebook group id, defa
 
 func getColly(context *pb.Context) *fbcolly.Fbcolly {
 	instance := fbcolly.New()
+	instance.ProxyFunction = proxyFunction
 	if context != nil && len(context.Cookies) > 0 {
 		_ = instance.LoginWithCookies(context.Cookies)
 	}
-
 	return instance
 }
 
@@ -89,6 +92,16 @@ func (s server) FetchImageUrl(ctx context.Context, request *pb.FetchImageUrlRequ
 
 func main() {
 	logger.Init("fb-colly", true, false, ioutil.Discard)
+
+	val, found := os.LookupEnv("COLLYPROXY")
+	if found {
+		logger.Infof("Proxy list: %v", strings.Split(val, ","))
+		rp, err := proxy.RoundRobinProxySwitcher(strings.Split(val, ",")...)
+		if err != nil {
+			log.Fatal(err)
+		}
+		proxyFunction = &rp
+	}
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
