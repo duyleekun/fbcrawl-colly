@@ -285,10 +285,10 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (*pb.Facebook
 			createdAtWhenResult, err := f.w.Parse(element.DOM.Find("abbr").Text(), time.Now())
 			if err != nil || createdAtWhenResult == nil {
 				logger.Error(err)
-				return
+				post.CreatedAt = time.Now().Unix()
+			} else {
+				post.CreatedAt = createdAtWhenResult.Time.Unix()
 			}
-
-			post.CreatedAt = createdAtWhenResult.Time.Unix()
 
 			//Content
 
