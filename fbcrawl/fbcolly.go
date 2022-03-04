@@ -274,8 +274,8 @@ func (f *Fbcolly) FetchGroupFeed(groupId int64, nextCursor string) (*pb.Facebook
 				Username: getUsernameFromHref(userA.AttrOr("href", "")),
 				Name:     userA.Text(),
 			}
-			if len(post.User.Username) == 0 {
-				logger.Error("Invalid username")
+			if post.User.Id == 0 {
+				logger.Error("Invalid user id")
 				return
 			}
 
