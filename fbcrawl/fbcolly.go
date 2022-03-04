@@ -44,7 +44,6 @@ func setupSharedCollector(f *Fbcolly, collector *colly.Collector, onError func(e
 	if f.ProxyFunction != nil {
 		collector.SetProxyFunc(*f.ProxyFunction)
 	}
-
 	collector.OnRequest(func(request *colly.Request) {
 		lastUrl = request.URL.RawPath
 		logger.Infof("OnRequest %v proxy %v", request.URL, request.ProxyURL)
@@ -65,15 +64,15 @@ func setupSharedCollector(f *Fbcolly, collector *colly.Collector, onError func(e
 	})
 	collector.OnResponse(func(response *colly.Response) {
 		name := strconv.FormatInt(time.Now().Unix(), 10) + ".html"
-		logger.Infof("OnResponse ./%v proxy %v", name, response.Request.ProxyURL)
+		logger.Infof("OnResponse %v ./%v proxy %v", response.Request.URL, name, response.Request.ProxyURL)
 		_ = response.Save("./" + name)
 		//logger.Info(string(response.Body))
 	})
 
 	collector.OnHTML("a[href*=\"571927962827151\"]", func(element *colly.HTMLElement) {
-		logger.Error("RateLimit reached ")
+		logger.Errorf("RateLimit reached %v", lastUrl)
 
-		onError(errors.New("RateLimit reached"))
+		onError(errors.New("RateLimit reached %v"))
 	})
 
 	// Set error handler
@@ -126,6 +125,10 @@ func New() *Fbcolly {
 
 	extensions.Referer(collector)
 	collector.AllowURLRevisit = true
+
+	if f.ProxyFunction != nil {
+		collector.SetProxyFunc(*f.ProxyFunction)
+	}
 
 	f.collector = collector
 
