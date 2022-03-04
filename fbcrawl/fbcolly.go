@@ -70,9 +70,9 @@ func setupSharedCollector(f *Fbcolly, collector *colly.Collector, onError func(e
 	})
 
 	collector.OnHTML("a[href*=\"571927962827151\"]", func(element *colly.HTMLElement) {
-		logger.Errorf("RateLimit reached %v", lastUrl)
+		logger.Errorf("RateLimit reached with url %v", lastUrl)
 
-		onError(errors.New("RateLimit reached %v"))
+		onError(errors.New("RateLimit reached with url %v"))
 	})
 
 	// Set error handler
